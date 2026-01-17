@@ -41,10 +41,24 @@ public class Login_User {
         @Column(name = "password")
         private String password;
 
+        @Column(name = "bio")
+        private String bio;
+
+        @Column(name = "interests")
+        private String interests;
+
         public Login_User(String email, String name, String password) {
                 this.email = email;
                 this.name = name;
                 this.password = password;
+        }
+
+        public Login_User(String email, String name, String password, String bio, String interests) {
+                this.email = email;
+                this.name = name;
+                this.password = password;
+                this.bio = bio;
+                this.interests = interests;
         }
         public Login_User(){
 
