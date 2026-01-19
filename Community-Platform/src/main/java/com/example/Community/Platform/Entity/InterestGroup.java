@@ -1,11 +1,15 @@
 package com.example.Community.Platform.Entity;
 
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "interest_group")
+@Getter
+@Setter
 public class InterestGroup {
 
         @Id
@@ -22,6 +26,5 @@ public class InterestGroup {
 
         private LocalDateTime createdAt;
         private LocalDateTime updatedAt;
-
-
+ +
 }

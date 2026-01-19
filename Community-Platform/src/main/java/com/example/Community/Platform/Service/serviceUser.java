@@ -14,9 +14,10 @@ import java.util.Optional;
 public class serviceUser {
 
     @Autowired
-    repo_User repo;
+    private repo_User repo;
 
-    private BCryptPasswordEncoder encoder= new BCryptPasswordEncoder(12);
+    @Autowired
+    private BCryptPasswordEncoder encoder;
 
     public Login_User addUser(Login_User user){
         user.setPassword(encoder.encode(user.getPassword()));
