@@ -9,7 +9,12 @@ import com.example.Community.Platform.Repository.Post_repo.PostCommentRepository
 import com.example.Community.Platform.Repository.Post_repo.PostLikeRepository;
 import com.example.Community.Platform.Repository.Post_repo.PostMediaRepository;
 import com.example.Community.Platform.Repository.Post_repo.PostRepository;
+import com.example.Community.Platform.Repository.repo_User;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -29,6 +34,7 @@ public class PostService {
     @Autowired private PostMediaRepository mediaRepo;
     @Autowired private PostLikeRepository likeRepo;
     @Autowired private PostCommentRepository commentRepo;
+    @Autowired private repo_User userRepo;
 
     private final String UPLOAD_DIR = "uploads/";
 
@@ -86,5 +92,105 @@ public class PostService {
     public List<PostComment> getComments(Long postId) {
         return commentRepo.findByPostId(postId);
     }
+
+    // UPDATE COMMENT
+    public PostComment updateComment(Long commentId, Login_User user, String newCommentText) {
+        PostComment comment = commentRepo.findById(commentId)
+                .orElseThrow(() -> new RuntimeException("Comment not found with id: " + commentId));
+        
+        // Check if user is the owner
+        if (!comment.getUser().getEmail().equals(user.getEmail())) {
+            throw new RuntimeException("You can only update your own comments");
+        }
+        
+        comment.setCommentText(newCommentText);
+        return commentRepo.save(comment);
+    }
+
+    // DELETE COMMENT
+    public void deleteComment(Long commentId, Login_User user) {
+        PostComment comment = commentRepo.findById(commentId)
+                .orElseThrow(() -> new RuntimeException("Comment not found with id: " + commentId));
+        
+        // Check if user is the owner
+        if (!comment.getUser().getEmail().equals(user.getEmail())) {
+            throw new RuntimeException("You can only delete your own comments");
+        }
+        
+        commentRepo.delete(comment);
+    }
+
+    // GET ALL POSTS (FEED) - with pagination
+    public Page<Post> getFeed(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        return postRepo.findAll(pageable);
+    }
+
+    // GET POST BY ID
+    public Post getPostById(Long postId) {
+        return postRepo.findById(postId)
+                .orElseThrow(() -> new RuntimeException("Post not found with id: " + postId));
+    }
+
+    // GET POSTS BY USER
+    public List<Post> getPostsByUser(Login_User user) {
+        return postRepo.findByUser(user);
+    }
+
+    // GET POSTS BY USER with pagination
+    public Page<Post> getPostsByUser(Login_User user, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        return postRepo.findByUser(user, pageable);
+    }
+
+    // UPDATE POST
+    public Post updatePost(Long postId, Login_User user, String newCaption) {
+        Post post = postRepo.findById(postId)
+                .orElseThrow(() -> new RuntimeException("Post not found with id: " + postId));
+        
+        // Check if user is the owner
+        if (!post.getUser().getEmail().equals(user.getEmail())) {
+            throw new RuntimeException("You can only update your own posts");
+        }
+        
+        post.setCaption(newCaption);
+        post.setUpdatedAt(LocalDateTime.now());
+        return postRepo.save(post);
+    }
+
+    // DELETE POST
+    public void deletePost(Long postId, Login_User user) {
+        Post post = postRepo.findById(postId)
+                .orElseThrow(() -> new RuntimeException("Post not found with id: " + postId));
+        
+        // Check if user is the owner
+        if (!post.getUser().getEmail().equals(user.getEmail())) {
+            throw new RuntimeException("You can only delete your own posts");
+        }
+        
+        postRepo.delete(post);
+    }
+
+    // GET LIKE COUNT
+    public Long getLikeCount(Long postId) {
+        Post post = postRepo.findById(postId)
+                .orElseThrow(() -> new RuntimeException("Post not found with id: " + postId));
+        return likeRepo.countByPost(post);
+    }
+
+    // GET COMMENT COUNT
+    public Long getCommentCount(Long postId) {
+        Post post = postRepo.findById(postId)
+                .orElseThrow(() -> new RuntimeException("Post not found with id: " + postId));
+        return commentRepo.countByPost(post);
+    }
+
+    // CHECK IF USER LIKED POST
+    public boolean hasUserLiked(Login_User user, Long postId) {
+        Post post = postRepo.findById(postId)
+                .orElseThrow(() -> new RuntimeException("Post not found with id: " + postId));
+        return likeRepo.existsByPostAndUser(post, user);
+    }
+
 }
 
