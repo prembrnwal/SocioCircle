@@ -5,8 +5,8 @@ import com.example.Community.Platform.Entity.POST_WORK.Post;
 import com.example.Community.Platform.Entity.POST_WORK.PostComment;
 import com.example.Community.Platform.Repository.repo_User;
 import com.example.Community.Platform.Service.Post_Service.PostService;
+import com.example.Community.Platform.DTO.CursorPageResponse;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -37,12 +37,12 @@ public class PostController {
         return ResponseEntity.ok("Post created");
     }
 
-    // GET ALL POSTS (FEED) - with pagination
+    // GET ALL POSTS (FEED) - with cursor-based pagination
     @GetMapping("/feed")
-    public ResponseEntity<Page<Post>> getFeed(
-            @RequestParam(defaultValue = "0") int page,
+    public ResponseEntity<CursorPageResponse<Post>> getFeed(
+            @RequestParam(required = false) Long cursor,
             @RequestParam(defaultValue = "10") int size) {
-        return ResponseEntity.ok(postService.getFeed(page, size));
+        return ResponseEntity.ok(postService.getFeed(cursor, size));
     }
 
     // GET POST BY ID
@@ -51,14 +51,14 @@ public class PostController {
         return ResponseEntity.ok(postService.getPostById(postId));
     }
 
-    // GET POSTS BY USER
+    // GET POSTS BY USER - with cursor-based pagination
     @GetMapping("/user/{userEmail}")
-    public ResponseEntity<List<Post>> getPostsByUser(@PathVariable String userEmail,
-                                                      @RequestParam(defaultValue = "0") int page,
-                                                      @RequestParam(defaultValue = "10") int size) {
+    public ResponseEntity<CursorPageResponse<Post>> getPostsByUser(@PathVariable String userEmail,
+                                                                     @RequestParam(required = false) Long cursor,
+                                                                     @RequestParam(defaultValue = "10") int size) {
         Login_User user = userRepo.findById(userEmail)
                 .orElseThrow(() -> new RuntimeException("User not found"));
-        return ResponseEntity.ok(postService.getPostsByUser(user, page, size).getContent());
+        return ResponseEntity.ok(postService.getPostsByUser(user, cursor, size));
     }
 
     // GET POSTS BY CURRENT USER

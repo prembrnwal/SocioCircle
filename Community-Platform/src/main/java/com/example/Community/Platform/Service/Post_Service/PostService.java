@@ -10,11 +10,10 @@ import com.example.Community.Platform.Repository.Post_repo.PostLikeRepository;
 import com.example.Community.Platform.Repository.Post_repo.PostMediaRepository;
 import com.example.Community.Platform.Repository.Post_repo.PostRepository;
 import com.example.Community.Platform.Repository.repo_User;
+import com.example.Community.Platform.DTO.CursorPageResponse;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -121,10 +120,27 @@ public class PostService {
         commentRepo.delete(comment);
     }
 
-    // GET ALL POSTS (FEED) - with pagination
-    public Page<Post> getFeed(int page, int size) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
-        return postRepo.findAll(pageable);
+    // GET ALL POSTS (FEED) - with cursor-based pagination
+    public CursorPageResponse<Post> getFeed(Long cursor, int size) {
+        Pageable pageable = PageRequest.of(0, size + 1); // Fetch one extra to check if there's more
+        
+        List<Post> posts;
+        if (cursor == null) {
+            // First page
+            posts = postRepo.findAllOrderByIdDesc(pageable);
+        } else {
+            // Subsequent pages
+            posts = postRepo.findByIdLessThanOrderByIdDesc(cursor, pageable);
+        }
+        
+        boolean hasNext = posts.size() > size;
+        if (hasNext) {
+            posts = posts.subList(0, size); // Remove the extra item
+        }
+        
+        Long nextCursor = posts.isEmpty() ? null : posts.get(posts.size() - 1).getId();
+        
+        return new CursorPageResponse<>(posts, nextCursor, hasNext, posts.size());
     }
 
     // GET POST BY ID
@@ -138,10 +154,27 @@ public class PostService {
         return postRepo.findByUser(user);
     }
 
-    // GET POSTS BY USER with pagination
-    public Page<Post> getPostsByUser(Login_User user, int page, int size) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
-        return postRepo.findByUser(user, pageable);
+    // GET POSTS BY USER with cursor-based pagination
+    public CursorPageResponse<Post> getPostsByUser(Login_User user, Long cursor, int size) {
+        Pageable pageable = PageRequest.of(0, size + 1); // Fetch one extra to check if there's more
+        
+        List<Post> posts;
+        if (cursor == null) {
+            // First page
+            posts = postRepo.findByUserOrderByIdDesc(user, pageable);
+        } else {
+            // Subsequent pages
+            posts = postRepo.findByUserAndIdLessThanOrderByIdDesc(user, cursor, pageable);
+        }
+        
+        boolean hasNext = posts.size() > size;
+        if (hasNext) {
+            posts = posts.subList(0, size); // Remove the extra item
+        }
+        
+        Long nextCursor = posts.isEmpty() ? null : posts.get(posts.size() - 1).getId();
+        
+        return new CursorPageResponse<>(posts, nextCursor, hasNext, posts.size());
     }
 
     // UPDATE POST
