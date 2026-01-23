@@ -2,6 +2,8 @@ package com.example.Community.Platform.Service.Jamming_Service;
 
 import com.example.Community.Platform.DTO.Jamming_Dto.CreateJammingSessionRequest;
 import com.example.Community.Platform.DTO.Jamming_Dto.JammingSessionResponse;
+import com.example.Community.Platform.DTO.Jamming_Dto.ParticipantResponse;
+import com.example.Community.Platform.DTO.TimeCursorPageResponse;
 import com.example.Community.Platform.Entity.InterestGroup;
 import com.example.Community.Platform.Entity.Jamming_Entity.JammingParticipant;
 import com.example.Community.Platform.Entity.Jamming_Entity.JammingSession;
@@ -12,6 +14,8 @@ import com.example.Community.Platform.Repository.Jamming_Repo.JammingParticipant
 import com.example.Community.Platform.Repository.Jamming_Repo.JammingSessionRepository;
 import com.example.Community.Platform.Repository.MembershipRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -117,6 +121,80 @@ public class JammingSessionService {
         return participantRepo.findBySessionAndLeftAtIsNull(session);
     }
 
+    /* GET SESSIONS BY GROUP - Cursor-based pagination */
+    public TimeCursorPageResponse<JammingSessionResponse> getSessionsByGroupCursor(
+            Long groupId,
+            LocalDateTime cursor,
+            int limit) {
+
+        Pageable pageable = PageRequest.of(0, limit + 1); // Fetch one extra to check if there's more
+
+        List<JammingSession> sessions;
+        if (cursor == null) {
+            // First page
+            sessions = sessionRepo.findByGroupIdOrderByStartTimeDesc(groupId, pageable);
+        } else {
+            // Subsequent pages
+            sessions = sessionRepo.findByGroupIdAndStartTimeLessThanOrderByStartTimeDesc(
+                    groupId, cursor, pageable);
+        }
+
+        boolean hasNext = sessions.size() > limit;
+        if (hasNext) {
+            sessions = sessions.subList(0, limit); // Remove the extra item
+        }
+
+        List<JammingSessionResponse> responseList = sessions.stream()
+                .map(this::mapToResponse)
+                .toList();
+
+        LocalDateTime nextCursor = responseList.isEmpty() ? null : 
+                responseList.get(responseList.size() - 1).getStartTime();
+
+        return new TimeCursorPageResponse<>(responseList, nextCursor, hasNext, responseList.size());
+    }
+
+    /* GET PARTICIPANTS - Cursor-based pagination */
+    public TimeCursorPageResponse<ParticipantResponse> getParticipantsCursor(
+            Long sessionId,
+            LocalDateTime cursor,
+            int limit) {
+
+        JammingSession session = sessionRepo.findById(sessionId)
+                .orElseThrow(() -> new RuntimeException("Session not found"));
+
+        Pageable pageable = PageRequest.of(0, limit + 1); // Fetch one extra to check if there's more
+
+        List<JammingParticipant> participants;
+        if (cursor == null) {
+            // First page
+            participants = participantRepo.findBySessionAndLeftAtIsNullOrderByJoinedAtDesc(
+                    session, pageable);
+        } else {
+            // Subsequent pages
+            participants = participantRepo.findBySessionAndLeftAtIsNullAndJoinedAtLessThanOrderByJoinedAtDesc(
+                    session, cursor, pageable);
+        }
+
+        boolean hasNext = participants.size() > limit;
+        if (hasNext) {
+            participants = participants.subList(0, limit); // Remove the extra item
+        }
+
+        List<ParticipantResponse> responseList = participants.stream().map(p -> {
+            ParticipantResponse dto = new ParticipantResponse();
+            dto.setUserId(p.getUser().getEmail()); // Use email as userId
+            dto.setUsername(p.getUser().getName()); // Use name as username
+            dto.setJoinedAt(p.getJoinedAt());
+            return dto;
+        }).toList();
+
+        LocalDateTime nextCursor = responseList.isEmpty() ? null : 
+                responseList.get(responseList.size() - 1).getJoinedAt();
+
+        return new TimeCursorPageResponse<>(responseList, nextCursor, hasNext, responseList.size());
+    }
+
     private JammingSessionResponse mapToResponse(JammingSession session) {
         JammingSessionResponse dto = new JammingSessionResponse();
         dto.setId(session.getId());
@@ -129,8 +207,5 @@ public class JammingSessionService {
         dto.setCreatedBy(session.getCreatedBy().getEmail());
         return dto;
     }
-
-
-    
 
 }
