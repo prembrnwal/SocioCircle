@@ -88,9 +88,21 @@ public class JammingSessionService {
         JammingSession session = sessionRepo.findById(sessionId)
                 .orElseThrow(() -> new RuntimeException("Session not found"));
 
+        if (!membershipRepo.existsByUserAndGroup(user, session.getGroup())) {
+            throw new RuntimeException("Not authorized");
+        }
+        
+        if (session.getStatus() == SessionStatus.ENDED) {
+            throw new RuntimeException("Session already ended");
+        }
+
         JammingParticipant participant = participantRepo
                 .findBySessionAndUserAndLeftAtIsNull(session, user)
                 .orElseThrow(() -> new RuntimeException("Not joined"));
+
+        if (participant.getLeftAt() != null) {
+            throw new RuntimeException("Already left session");
+        }
 
         participant.setLeftAt(LocalDateTime.now());
         participantRepo.save(participant);
@@ -104,6 +116,7 @@ public class JammingSessionService {
 
         return participantRepo.findBySessionAndLeftAtIsNull(session);
     }
+
     private JammingSessionResponse mapToResponse(JammingSession session) {
         JammingSessionResponse dto = new JammingSessionResponse();
         dto.setId(session.getId());
@@ -116,4 +129,8 @@ public class JammingSessionService {
         dto.setCreatedBy(session.getCreatedBy().getEmail());
         return dto;
     }
+
+
+    
+
 }
