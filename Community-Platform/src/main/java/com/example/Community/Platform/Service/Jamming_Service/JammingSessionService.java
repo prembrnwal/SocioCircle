@@ -3,7 +3,7 @@ package com.example.Community.Platform.Service.Jamming_Service;
 import com.example.Community.Platform.DTO.Jamming_Dto.CreateJammingSessionRequest;
 import com.example.Community.Platform.DTO.Jamming_Dto.JammingSessionResponse;
 import com.example.Community.Platform.DTO.Jamming_Dto.ParticipantResponse;
-import com.example.Community.Platform.DTO.TimeCursorPageResponse;
+import com.example.Community.Platform.DTO.Pagging.TimeCursorPageResponse;
 import com.example.Community.Platform.Entity.InterestGroup;
 import com.example.Community.Platform.Entity.Jamming_Entity.JammingParticipant;
 import com.example.Community.Platform.Entity.Jamming_Entity.JammingSession;

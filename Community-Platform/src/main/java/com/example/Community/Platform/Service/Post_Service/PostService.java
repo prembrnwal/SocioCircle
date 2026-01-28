@@ -10,7 +10,7 @@ import com.example.Community.Platform.Repository.Post_repo.PostLikeRepository;
 import com.example.Community.Platform.Repository.Post_repo.PostMediaRepository;
 import com.example.Community.Platform.Repository.Post_repo.PostRepository;
 import com.example.Community.Platform.Repository.repo_User;
-import com.example.Community.Platform.DTO.CursorPageResponse;
+import com.example.Community.Platform.DTO.Pagging.CursorPageResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;

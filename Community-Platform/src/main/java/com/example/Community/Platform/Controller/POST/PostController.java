@@ -5,7 +5,7 @@ import com.example.Community.Platform.Entity.POST_WORK.Post;
 import com.example.Community.Platform.Entity.POST_WORK.PostComment;
 import com.example.Community.Platform.Repository.repo_User;
 import com.example.Community.Platform.Service.Post_Service.PostService;
-import com.example.Community.Platform.DTO.CursorPageResponse;
+import com.example.Community.Platform.DTO.Pagging.CursorPageResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;

@@ -1,4 +1,4 @@
-package com.example.Community.Platform.DTO;
+package com.example.Community.Platform.DTO.Pagging;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
