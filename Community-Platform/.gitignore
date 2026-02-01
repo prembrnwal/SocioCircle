@@ -1,5 +1,4 @@
 HELP.md
-WEBSOCKET_IMPLEMENTATION_GUIDE.md
 target/
 .mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
@@ -32,3 +31,6 @@ build/
 
 ### VS Code ###
 .vscode/
+
+WEBSOCKET_IMPLEMENTATION_GUIDE.md
+FEATURES_STATUS.md

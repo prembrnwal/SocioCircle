@@ -45,6 +45,15 @@ public class PostController {
         return ResponseEntity.ok(postService.getFeed(cursor, size));
     }
 
+    // GET PERSONALIZED FEED (Posts from followed users) - with cursor-based pagination
+    @GetMapping("/feed/following")
+    public ResponseEntity<CursorPageResponse<Post>> getPersonalizedFeed(
+            @RequestParam(required = false) Long cursor,
+            @RequestParam(defaultValue = "10") int size,
+            @AuthenticationPrincipal Login_User user) {
+        return ResponseEntity.ok(postService.getPersonalizedFeed(user, cursor, size));
+    }
+
     // GET POST BY ID
     @GetMapping("/{postId}")
     public ResponseEntity<Post> getPostById(@PathVariable Long postId) {

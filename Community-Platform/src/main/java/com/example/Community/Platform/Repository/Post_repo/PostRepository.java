@@ -28,5 +28,18 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     // Cursor-based pagination: Get first page of user posts
     @Query("SELECT p FROM Post p WHERE p.user = :user ORDER BY p.id DESC")
     List<Post> findByUserOrderByIdDesc(@Param("user") Login_User user, org.springframework.data.domain.Pageable pageable);
+    
+    // Personalized feed: Get posts from followed users (cursor-based pagination)
+    @Query("SELECT p FROM Post p WHERE p.user IN :followedUsers AND p.id < :cursorId ORDER BY p.id DESC")
+    List<Post> findByUserInAndIdLessThanOrderByIdDesc(
+            @Param("followedUsers") List<Login_User> followedUsers, 
+            @Param("cursorId") Long cursorId, 
+            org.springframework.data.domain.Pageable pageable);
+    
+    // Personalized feed: Get first page of posts from followed users
+    @Query("SELECT p FROM Post p WHERE p.user IN :followedUsers ORDER BY p.id DESC")
+    List<Post> findByUserInOrderByIdDesc(
+            @Param("followedUsers") List<Login_User> followedUsers, 
+            org.springframework.data.domain.Pageable pageable);
 }
 

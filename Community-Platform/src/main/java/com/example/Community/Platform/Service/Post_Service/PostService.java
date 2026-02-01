@@ -10,6 +10,7 @@ import com.example.Community.Platform.Repository.Post_repo.PostLikeRepository;
 import com.example.Community.Platform.Repository.Post_repo.PostMediaRepository;
 import com.example.Community.Platform.Repository.Post_repo.PostRepository;
 import com.example.Community.Platform.DTO.Pagging.CursorPageResponse;
+import com.example.Community.Platform.Service.FollowService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -33,6 +34,7 @@ public class PostService {
     @Autowired private PostMediaRepository mediaRepo;
     @Autowired private PostLikeRepository likeRepo;
     @Autowired private PostCommentRepository commentRepo;
+    @Autowired private FollowService followService;
 
     private final String UPLOAD_DIR = "uploads/";
 
@@ -129,6 +131,37 @@ public class PostService {
         } else {
             // Subsequent pages
             posts = postRepo.findByIdLessThanOrderByIdDesc(cursor, pageable);
+        }
+        
+        boolean hasNext = posts.size() > size;
+        if (hasNext) {
+            posts = posts.subList(0, size); // Remove the extra item
+        }
+        
+        Long nextCursor = posts.isEmpty() ? null : posts.get(posts.size() - 1).getId();
+        
+        return new CursorPageResponse<>(posts, nextCursor, hasNext, posts.size());
+    }
+
+    // GET PERSONALIZED FEED (Posts from followed users) - with cursor-based pagination
+    public CursorPageResponse<Post> getPersonalizedFeed(Login_User user, Long cursor, int size) {
+        // Get list of users that current user follows
+        List<Login_User> followedUsers = followService.getFollowingUsers(user);
+        
+        // If user doesn't follow anyone, return empty feed
+        if (followedUsers.isEmpty()) {
+            return new CursorPageResponse<>(List.of(), null, false, 0);
+        }
+        
+        Pageable pageable = PageRequest.of(0, size + 1); // Fetch one extra to check if there's more
+        
+        List<Post> posts;
+        if (cursor == null) {
+            // First page
+            posts = postRepo.findByUserInOrderByIdDesc(followedUsers, pageable);
+        } else {
+            // Subsequent pages
+            posts = postRepo.findByUserInAndIdLessThanOrderByIdDesc(followedUsers, cursor, pageable);
         }
         
         boolean hasNext = posts.size() > size;
