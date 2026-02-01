@@ -9,7 +9,6 @@ import com.example.Community.Platform.Repository.Post_repo.PostCommentRepository
 import com.example.Community.Platform.Repository.Post_repo.PostLikeRepository;
 import com.example.Community.Platform.Repository.Post_repo.PostMediaRepository;
 import com.example.Community.Platform.Repository.Post_repo.PostRepository;
-import com.example.Community.Platform.Repository.repo_User;
 import com.example.Community.Platform.DTO.Pagging.CursorPageResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
@@ -34,7 +33,6 @@ public class PostService {
     @Autowired private PostMediaRepository mediaRepo;
     @Autowired private PostLikeRepository likeRepo;
     @Autowired private PostCommentRepository commentRepo;
-    @Autowired private repo_User userRepo;
 
     private final String UPLOAD_DIR = "uploads/";
 

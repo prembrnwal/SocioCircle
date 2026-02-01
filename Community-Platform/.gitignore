@@ -1,4 +1,5 @@
 HELP.md
+WEBSOCKET_IMPLEMENTATION_GUIDE.md
 target/
 .mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
