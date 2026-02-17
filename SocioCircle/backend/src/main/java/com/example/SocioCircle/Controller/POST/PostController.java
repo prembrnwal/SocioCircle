@@ -27,14 +27,30 @@ public class PostController {
     @Autowired
     private repo_User userRepo;
 
+    private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(PostController.class);
+
     // CREATE POST
     @PostMapping
     public ResponseEntity<String> createPost(
-            @RequestParam String caption,
+            @RequestParam(required = false) String caption,
             @RequestParam MultipartFile[] files,
             @AuthenticationPrincipal Login_User user) throws IOException {
-        postService.createPost(user, caption, files);
-        return ResponseEntity.ok("Post created");
+        logger.info("Received create post request. User: {}, Caption: {}, Files: {}", 
+               user != null ? user.getEmail() : "null", caption, files.length);
+               
+        if (user == null) {
+            logger.warn("User not authenticated for create post request");
+            return ResponseEntity.status(401).body("Authentication required. Please log in.");
+        }
+        
+        try {
+            postService.createPost(user, caption != null ? caption : "", files);
+            logger.info("Post created successfully for user: {}", user.getEmail());
+            return ResponseEntity.ok("Post created");
+        } catch (Exception e) {
+            logger.error("Error creating post for user: {}", user.getEmail(), e);
+            throw e; // Let global exception handler handle it, or return 500
+        }
     }
 
     // GET ALL POSTS (FEED) - with cursor-based pagination

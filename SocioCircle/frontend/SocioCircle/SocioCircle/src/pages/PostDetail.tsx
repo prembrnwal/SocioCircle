@@ -94,18 +94,20 @@ export const PostDetail = () => {
       </button>
 
       <div className="card overflow-hidden">
-        <div className="md:flex">
+        <div className={post.mediaUrls.length > 0 ? 'md:flex' : ''}>
           {/* Image */}
-          <div className="md:w-1/2 bg-black flex items-center justify-center" style={{ aspectRatio: '1 / 1' }}>
-            <img
-              src={post.mediaUrls[0]}
-              alt={post.caption || 'Post'}
-              className="w-full h-full object-contain"
-            />
-          </div>
+          {post.mediaUrls.length > 0 && (
+            <div className="md:w-1/2 bg-black flex items-center justify-center" style={{ aspectRatio: '1 / 1' }}>
+              <img
+                src={post.mediaUrls[0]}
+                alt={post.caption || 'Post'}
+                className="w-full h-full object-contain"
+              />
+            </div>
+          )}
 
           {/* Content */}
-          <div className="md:w-1/2 flex flex-col">
+          <div className={post.mediaUrls.length > 0 ? 'md:w-1/2 flex flex-col' : 'flex flex-col w-full'}>
             {/* Header */}
             <div className="flex items-center gap-3 p-4 border-b border-gray-200 dark:border-gray-800">
               <Avatar

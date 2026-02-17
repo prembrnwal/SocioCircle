@@ -135,3 +135,21 @@ export interface ChatMessage {
 export interface SendMessageRequest {
   content: string;
 }
+
+// Backend response shapes (for API transformation)
+export interface BackendPost {
+  id: number;
+  user?: { email: string; name: string; profilePicture?: string };
+  caption?: string;
+  mediaList?: { mediaUrl: string }[];
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface BackendPostComment {
+  id: number;
+  post?: { id: number };
+  user?: { email: string; name: string; profilePicture?: string };
+  commentText: string;
+  createdAt: string;
+}

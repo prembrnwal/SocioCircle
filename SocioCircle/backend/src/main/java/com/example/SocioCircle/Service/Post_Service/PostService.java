@@ -36,9 +36,9 @@ public class PostService {
     @Autowired private PostCommentRepository commentRepo;
     @Autowired private FollowService followService;
 
-    private final String UPLOAD_DIR = "uploads/";
+    private final String UPLOAD_DIR = System.getProperty("user.dir") + "/uploads/";
 
-    // CREATE POST
+    @org.springframework.transaction.annotation.Transactional
     public Post createPost(Login_User user, String caption, MultipartFile[] files) throws IOException {
         Post post = new Post();
         post.setUser(user);
@@ -46,15 +46,20 @@ public class PostService {
         post.setCreatedAt(LocalDateTime.now());
 
         post = postRepo.save(post);
+        
+        // Ensure upload directory exists
+        Path uploadPath = Paths.get(UPLOAD_DIR);
+        if (!Files.exists(uploadPath)) {
+            Files.createDirectories(uploadPath);
+        }
 
         for (MultipartFile file : files) {
             String fileName = UUID.randomUUID() + "_" + file.getOriginalFilename();
             Path path = Paths.get(UPLOAD_DIR + fileName);
-            Files.createDirectories(path.getParent());
             Files.write(path, file.getBytes());
 
             PostMedia media = new PostMedia();
-            media.setMediaUrl("/uploads/" + fileName);
+            media.setMediaUrl("/uploads/" + fileName); // Keep relative URL for frontend access
             media.setPost(post);
             mediaRepo.save(media);
         }

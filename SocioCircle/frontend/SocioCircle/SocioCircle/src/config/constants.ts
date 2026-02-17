@@ -1,5 +1,6 @@
-export const API_BASE_URL = 'http://localhost:8080/api';
-export const WS_BASE_URL = 'http://localhost:8080/ws-chat';
+export const API_BASE_URL = 'http://localhost:9090/api';
+export const AUTH_BASE_URL = 'http://localhost:9090';
+export const WS_BASE_URL = 'http://localhost:9090/ws-chat';
 
 export const STORAGE_KEYS = {
   TOKEN: 'auth_token',

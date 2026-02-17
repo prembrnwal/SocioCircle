@@ -1,5 +1,5 @@
 import axios, { type AxiosInstance, type InternalAxiosRequestConfig } from 'axios';
-import { API_BASE_URL, STORAGE_KEYS } from '../config/constants';
+import { API_BASE_URL, AUTH_BASE_URL, STORAGE_KEYS } from '../config/constants';
 import type {
   LoginRequest,
   RegisterRequest,
@@ -17,7 +17,47 @@ import type {
   Participant,
   ChatMessage,
   SendMessageRequest,
+  BackendPost,
+  BackendPostComment,
 } from '../types';
+
+// Transform backend Post entity to frontend Post shape
+function transformPost(
+  raw: BackendPost,
+  likeInfo?: { likeCount: number; hasLiked: boolean },
+  commentCount?: number
+): Post {
+  const mediaUrls = (raw.mediaList || []).map((m) => {
+    const url = m.mediaUrl || '';
+    return url.startsWith('http') ? url : `${AUTH_BASE_URL}${url.startsWith('/') ? '' : '/'}${url}`;
+  });
+  return {
+    id: raw.id,
+    userEmail: raw.user?.email || '',
+    userName: raw.user?.name || 'Unknown',
+    userProfilePicture: raw.user?.profilePicture,
+    caption: raw.caption,
+    mediaUrls,
+    createdAt: raw.createdAt,
+    updatedAt: raw.updatedAt || raw.createdAt,
+    likeCount: likeInfo?.likeCount ?? 0,
+    commentCount: commentCount ?? 0,
+    hasLiked: likeInfo?.hasLiked ?? false,
+  };
+}
+
+function transformComment(raw: BackendPostComment): Comment {
+  return {
+    id: raw.id,
+    postId: raw.post?.id ?? 0,
+    userEmail: raw.user?.email || '',
+    userName: raw.user?.name || 'Unknown',
+    userProfilePicture: raw.user?.profilePicture,
+    content: raw.commentText,
+    createdAt: raw.createdAt,
+    updatedAt: raw.createdAt,
+  };
+}
 
 class ApiService {
   private api: AxiosInstance;
@@ -56,17 +96,17 @@ class ApiService {
     );
   }
 
-  // Authentication APIs
+  // Authentication APIs (at root, not /api)
   async login(data: LoginRequest): Promise<AuthResponse> {
     const response = await axios.post<AuthResponse>(
-      `${API_BASE_URL}/loginUser`,
+      `${AUTH_BASE_URL}/loginUser`,
       data
     );
     return response.data;
   }
 
   async register(data: RegisterRequest): Promise<User> {
-    const response = await axios.post<User>(`${API_BASE_URL}/adduser`, data);
+    const response = await axios.post<User>(`${AUTH_BASE_URL}/adduser`, data);
     return response.data;
   }
 
@@ -110,30 +150,60 @@ class ApiService {
     const params = new URLSearchParams();
     if (cursor) params.append('cursor', cursor.toString());
     params.append('size', size.toString());
-    const response = await this.api.get<CursorPageResponse<Post>>(
+    const response = await this.api.get<CursorPageResponse<BackendPost>>(
       `/posts/feed?${params.toString()}`
     );
-    return response.data;
+    const posts = await Promise.all(
+      response.data.content.map(async (raw) => {
+        try {
+          const [likesRes, countRes] = await Promise.all([
+            this.api.get<{ likeCount: number; hasLiked: boolean }>(`/posts/${raw.id}/likes`),
+            this.api.get<{ commentCount: number }>(`/posts/${raw.id}/comments/count`),
+          ]);
+          return transformPost(raw, likesRes.data, Number(countRes.data.commentCount));
+        } catch {
+          return transformPost(raw);
+        }
+      })
+    );
+    return { ...response.data, content: posts };
   }
 
   async getFollowingFeed(cursor?: number, size: number = 10): Promise<CursorPageResponse<Post>> {
     const params = new URLSearchParams();
     if (cursor) params.append('cursor', cursor.toString());
     params.append('size', size.toString());
-    const response = await this.api.get<CursorPageResponse<Post>>(
+    const response = await this.api.get<CursorPageResponse<BackendPost>>(
       `/posts/feed/following?${params.toString()}`
     );
-    return response.data;
+    const posts = await Promise.all(
+      response.data.content.map(async (raw) => {
+        try {
+          const [likesRes, countRes] = await Promise.all([
+            this.api.get<{ likeCount: number; hasLiked: boolean }>(`/posts/${raw.id}/likes`),
+            this.api.get<{ commentCount: number }>(`/posts/${raw.id}/comments/count`),
+          ]);
+          return transformPost(raw, likesRes.data, Number(countRes.data.commentCount));
+        } catch {
+          return transformPost(raw);
+        }
+      })
+    );
+    return { ...response.data, content: posts };
   }
 
   async getPost(postId: number): Promise<Post> {
-    const response = await this.api.get<Post>(`/posts/${postId}`);
-    return response.data;
+    const [postRes, likesRes, countRes] = await Promise.all([
+      this.api.get<BackendPost>(`/posts/${postId}`),
+      this.api.get<{ likeCount: number; hasLiked: boolean }>(`/posts/${postId}/likes`).catch(() => ({ data: { likeCount: 0, hasLiked: false } })),
+      this.api.get<{ commentCount: number }>(`/posts/${postId}/comments/count`).catch(() => ({ data: { commentCount: 0 } })),
+    ]);
+    return transformPost(postRes.data, likesRes.data, Number(countRes.data.commentCount));
   }
 
   async createPost(data: CreatePostRequest): Promise<{ message: string }> {
     const formData = new FormData();
-    formData.append('caption', data.caption);
+    formData.append('caption', data.caption || '');
     data.files.forEach((file) => {
       formData.append('files', file);
     });
@@ -186,8 +256,8 @@ class ApiService {
   }
 
   async getComments(postId: number): Promise<Comment[]> {
-    const response = await this.api.get<Comment[]>(`/posts/${postId}/comments`);
-    return response.data;
+    const response = await this.api.get<BackendPostComment[]>(`/posts/${postId}/comments`);
+    return response.data.map(transformComment);
   }
 
   async getCommentCount(postId: number): Promise<{ commentCount: number }> {
@@ -221,15 +291,16 @@ class ApiService {
     const params = new URLSearchParams();
     if (cursor) params.append('cursor', cursor.toString());
     params.append('size', size.toString());
-    const response = await this.api.get<CursorPageResponse<Post>>(
+    const response = await this.api.get<CursorPageResponse<BackendPost>>(
       `/posts/user/${userEmail}?${params.toString()}`
     );
-    return response.data;
+    const posts = response.data.content.map((raw) => transformPost(raw));
+    return { ...response.data, content: posts };
   }
 
   async getMyPosts(): Promise<Post[]> {
-    const response = await this.api.get<Post[]>('/posts/my-posts');
-    return response.data;
+    const response = await this.api.get<BackendPost[]>('/posts/my-posts');
+    return response.data.map((raw) => transformPost(raw));
   }
 
   // Following APIs
@@ -299,7 +370,7 @@ class ApiService {
     return response.data;
   }
 
-  // Jamming Sessions APIs
+  // Jamming Sessions APIs (backend: /api/jamming-sessions)
   async getGroupSessions(
     groupId: number,
     cursor?: string,
@@ -309,7 +380,7 @@ class ApiService {
     if (cursor) params.append('cursor', cursor);
     params.append('limit', limit.toString());
     const response = await this.api.get<TimeCursorPageResponse<JammingSession>>(
-      `/sessions/groups/${groupId}?${params.toString()}`
+      `/jamming-sessions/groups/${groupId}?${params.toString()}`
     );
     return response.data;
   }
@@ -321,7 +392,7 @@ class ApiService {
     startTime: string,
     durationMinutes: number
   ): Promise<JammingSession> {
-    const response = await this.api.post<JammingSession>(`/sessions/groups/${groupId}`, {
+    const response = await this.api.post<JammingSession>(`/jamming-sessions/groups/${groupId}`, {
       title,
       description,
       startTime,
@@ -331,12 +402,12 @@ class ApiService {
   }
 
   async joinSession(sessionId: number): Promise<{ message: string }> {
-    const response = await this.api.post<{ message: string }>(`/sessions/${sessionId}/join`);
+    const response = await this.api.post<{ message: string }>(`/jamming-sessions/${sessionId}/join`);
     return response.data;
   }
 
   async leaveSession(sessionId: number): Promise<{ message: string }> {
-    const response = await this.api.post<{ message: string }>(`/sessions/${sessionId}/leave`);
+    const response = await this.api.post<{ message: string }>(`/jamming-sessions/${sessionId}/leave`);
     return response.data;
   }
 
@@ -349,13 +420,13 @@ class ApiService {
     if (cursor) params.append('cursor', cursor);
     params.append('limit', limit.toString());
     const response = await this.api.get<TimeCursorPageResponse<Participant>>(
-      `/sessions/${sessionId}/participants?${params.toString()}`
+      `/jamming-sessions/${sessionId}/participants?${params.toString()}`
     );
     return response.data;
   }
 
   async getAllSessionParticipants(sessionId: number): Promise<Participant[]> {
-    const response = await this.api.get<Participant[]>(`/sessions/${sessionId}/participants/all`);
+    const response = await this.api.get<Participant[]>(`/jamming-sessions/${sessionId}/participants/all`);
     return response.data;
   }
 
