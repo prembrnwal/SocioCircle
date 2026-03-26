@@ -5,6 +5,7 @@ import com.example.SocioCircle.DTO.UserInfo;
 import com.example.SocioCircle.Entity.Follow;
 import com.example.SocioCircle.Entity.Login_User;
 import com.example.SocioCircle.Repository.FollowRepository;
+import com.example.SocioCircle.Repository.Post_repo.PostRepository;
 import com.example.SocioCircle.Repository.repo_User;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -20,6 +21,9 @@ public class FollowService {
     
     @Autowired
     private repo_User userRepo;
+
+    @Autowired
+    private PostRepository postRepo;
     
     /**
      * Follow a user
@@ -115,10 +119,11 @@ public class FollowService {
         
         long followersCount = followRepo.countByFollowing(user);
         long followingCount = followRepo.countByFollower(user);
+        long postCount = postRepo.countByUser(user);
         boolean isFollowing = currentUser != null && 
                 followRepo.existsByFollowerAndFollowing(currentUser, user);
         
-        return new FollowStats(followersCount, followingCount, isFollowing);
+        return new FollowStats(followersCount, followingCount, postCount, isFollowing);
     }
     
     /**

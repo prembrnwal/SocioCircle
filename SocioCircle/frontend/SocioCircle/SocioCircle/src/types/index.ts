@@ -86,6 +86,7 @@ export interface TimeCursorPageResponse<T> {
 export interface FollowStats {
   followersCount: number;
   followingCount: number;
+  postCount: number;
   isFollowing: boolean;
 }
 

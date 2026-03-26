@@ -12,6 +12,8 @@ import java.util.List;
 @Repository
 public interface PostRepository extends JpaRepository<Post, Long> {
     List<Post> findByUser(Login_User user);
+
+    long countByUser(Login_User user);
     
     // Cursor-based pagination: Get posts after a specific ID (newest first)
     @Query("SELECT p FROM Post p WHERE p.id < :cursorId ORDER BY p.id DESC")

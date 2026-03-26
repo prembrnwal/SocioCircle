@@ -17,6 +17,7 @@ public class PostMedia {
 
     @ManyToOne
     @JoinColumn(name = "post_id")
+    @com.fasterxml.jackson.annotation.JsonBackReference
     private Post post;
 
 

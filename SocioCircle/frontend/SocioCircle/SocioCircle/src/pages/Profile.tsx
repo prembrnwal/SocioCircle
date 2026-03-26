@@ -17,6 +17,7 @@ export const Profile = () => {
   const navigate = useNavigate();
   const currentUser = useAuthStore((state) => state.user);
   const [activeTab, setActiveTab] = useState<TabType>('posts');
+  const [viewMode, setViewMode] = useState<'grid' | 'feed'>('grid');
   const isOwnProfile = !email || email === currentUser?.email;
 
   const {
@@ -85,7 +86,7 @@ export const Profile = () => {
       <div className="card p-6 mb-6">
         <div className="flex flex-col md:flex-row gap-6">
           <Avatar src={user.profilePicture} alt={user.name} size="xl" />
-          
+
           <div className="flex-1">
             <div className="flex items-center gap-4 mb-4">
               <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
@@ -127,7 +128,7 @@ export const Profile = () => {
                 className="hover:underline"
               >
                 <span className="font-semibold text-gray-900 dark:text-white">
-                  {posts.length}
+                  {followStats?.postCount || 0}
                 </span>{' '}
                 <span className="text-gray-600 dark:text-gray-400">posts</span>
               </Link>
@@ -173,35 +174,63 @@ export const Profile = () => {
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-8 border-b border-gray-200 dark:border-gray-800 mb-6">
-        <button
-          onClick={() => setActiveTab('posts')}
-          className={`flex items-center gap-2 pb-3 px-1 font-semibold transition-colors ${
-            activeTab === 'posts'
+      {/* View Toggle & Tabs */}
+      <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-800 mb-6">
+        <div className="flex gap-8">
+          <button
+            onClick={() => setActiveTab('posts')}
+            className={`flex items-center gap-2 pb-3 px-1 font-semibold transition-colors ${activeTab === 'posts'
               ? 'text-primary border-b-2 border-primary'
               : 'text-gray-500 dark:text-gray-400'
-          }`}
-        >
-          <IoGridOutline className="w-5 h-5" />
-          POSTS
-        </button>
-        {isOwnProfile && (
-          <button
-            onClick={() => setActiveTab('saved')}
-            className={`flex items-center gap-2 pb-3 px-1 font-semibold transition-colors ${
-              activeTab === 'saved'
+              }`}
+          >
+            <IoGridOutline className="w-5 h-5" />
+            POSTS
+          </button>
+          {isOwnProfile && (
+            <button
+              onClick={() => setActiveTab('saved')}
+              className={`flex items-center gap-2 pb-3 px-1 font-semibold transition-colors ${activeTab === 'saved'
                 ? 'text-primary border-b-2 border-primary'
                 : 'text-gray-500 dark:text-gray-400'
-            }`}
+                }`}
+            >
+              <IoBookmarkOutline className="w-5 h-5" />
+              SAVED
+            </button>
+          )}
+        </div>
+
+        {/* View Mode Toggle */}
+        <div className="flex gap-2 pb-2">
+          <button
+            onClick={() => setViewMode('grid')}
+            className={`p-2 rounded-md transition-colors ${viewMode === 'grid'
+              ? 'bg-gray-100 dark:bg-gray-800 text-primary'
+              : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'
+              }`}
+            title="Grid View"
           >
-            <IoBookmarkOutline className="w-5 h-5" />
-            SAVED
+            <IoGridOutline className="w-5 h-5" />
           </button>
-        )}
+          <button
+            onClick={() => setViewMode('feed')}
+            className={`p-2 rounded-md transition-colors ${viewMode === 'feed'
+              ? 'bg-gray-100 dark:bg-gray-800 text-primary'
+              : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'
+              }`}
+            title="Feed View"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 512 512" fill="currentColor">
+              <path d="M448 64H64C28.65 64 0 92.65 0 128v256c0 35.35 28.65 64 64 64h384c35.35 0 64-28.65 64-64V128C512 92.65 483.35 64 448 64zM464 384c0 8.8-7.2 16-16 16H64c-8.8 0-16-7.2-16-16V128c0-8.8 7.2-16 16-16h384c8.8 0 16 7.2 16 16V384z" />
+              <path d="M96 128h320v320H96z" opacity="0.3" />
+              <rect x="112" y="160" width="288" height="192" rx="16" ry="16" />
+            </svg>
+          </button>
+        </div>
       </div>
 
-      {/* Posts Grid */}
+      {/* Posts Content */}
       {isLoadingPosts ? (
         <div className="flex items-center justify-center py-12">
           <Spinner size="lg" />
@@ -211,7 +240,8 @@ export const Profile = () => {
           <IoPersonOutline className="w-16 h-16 text-gray-400 mx-auto mb-4" />
           <p className="text-gray-500 dark:text-gray-400">No posts yet</p>
         </div>
-      ) : (
+      ) : viewMode === 'grid' ? (
+        // Grid View
         <div className="grid grid-cols-3 gap-1">
           {posts.map((post) => (
             <div
@@ -219,11 +249,17 @@ export const Profile = () => {
               onClick={() => navigate(`${ROUTES.POST_DETAIL.replace(':postId', post.id.toString())}`)}
               className="aspect-square cursor-pointer relative group"
             >
-              <img
-                src={post.mediaUrls[0]}
-                alt={post.caption || 'Post'}
-                className="w-full h-full object-cover"
-              />
+              {post.mediaUrls.length > 0 ? (
+                <img
+                  src={post.mediaUrls[0]}
+                  alt={post.caption || 'Post'}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full bg-gray-200 dark:bg-gray-800 flex items-center justify-center">
+                  <span className="text-xs text-gray-500">{post.caption?.substring(0, 20)}...</span>
+                </div>
+              )}
               <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
                 <div className="opacity-0 group-hover:opacity-100 flex items-center gap-4 text-white">
                   <span className="font-semibold">{post.likeCount}</span>
@@ -231,6 +267,13 @@ export const Profile = () => {
                 </div>
               </div>
             </div>
+          ))}
+        </div>
+      ) : (
+        // Feed View
+        <div className="flex flex-col gap-6 max-w-2xl mx-auto">
+          {posts.map((post) => (
+            <PostCard key={post.id} post={post} />
           ))}
         </div>
       )}

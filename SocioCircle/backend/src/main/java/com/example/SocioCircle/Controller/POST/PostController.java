@@ -58,7 +58,9 @@ public class PostController {
     public ResponseEntity<CursorPageResponse<Post>> getFeed(
             @RequestParam(required = false) Long cursor,
             @RequestParam(defaultValue = "10") int size) {
-        return ResponseEntity.ok(postService.getFeed(cursor, size));
+        CursorPageResponse<Post> response = postService.getFeed(cursor, size);
+        logger.info("Fetching feed. Cursor: {}, Size: {}, Found: {}", cursor, size, response.getContent().size());
+        return ResponseEntity.ok(response);
     }
 
     // GET PERSONALIZED FEED (Posts from followed users) - with cursor-based pagination

@@ -12,6 +12,7 @@ import lombok.Setter;
 public class FollowStats {
     private long followersCount;
     private long followingCount;
+    private long postCount;
     private boolean isFollowing; // Whether current user follows this user
 }
 
