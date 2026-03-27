@@ -13,6 +13,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import jakarta.validation.Valid;
+
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -27,7 +29,7 @@ public class JammingSessionController {
     @PostMapping("/groups/{groupId}")
     public ResponseEntity<JammingSession> create(
             @PathVariable Long groupId,
-            @RequestBody CreateJammingSessionRequest request,
+            @Valid @RequestBody CreateJammingSessionRequest request,
             @AuthenticationPrincipal Login_User user) {
         return ResponseEntity.ok(service.createSession(groupId, request, user));
     }
