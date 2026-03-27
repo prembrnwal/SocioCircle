@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'react-toastify';
+import { motion } from 'framer-motion';
 import { Button, Input } from '../components/common';
 import { apiService } from '../services/api';
 import { useAuthStore } from '../stores/authStore';
@@ -46,7 +47,6 @@ export const Register = () => {
       const { confirmPassword, ...registerData } = data;
       await apiService.register(registerData);
       
-      // Auto-login after registration
       const loginResponse = await apiService.login({
         userId: data.email,
         password: data.password,
@@ -63,47 +63,61 @@ export const Register = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-black px-4 py-8">
-      <div className="max-w-md w-full space-y-8">
-        <div className="text-center">
-          <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2">
-            SocioCircle
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400">
-            Create your account
-          </p>
-        </div>
+    <div className="relative min-h-screen flex items-center justify-center bg-gray-50 dark:bg-[#0a0a0a] overflow-hidden py-10 px-4">
+      {/* Dynamic Background Elements */}
+      <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] bg-violet-600/20 blur-[120px] rounded-full mix-blend-screen pointer-events-none" />
+      <div className="absolute bottom-[-10%] left-[-10%] w-[40%] h-[40%] bg-fuchsia-600/20 blur-[120px] rounded-full mix-blend-screen pointer-events-none" />
 
-        <div className="card p-8">
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.4, ease: "easeOut" }}
+        className="relative z-10 w-full max-w-sm"
+      >
+        <div className="backdrop-blur-xl bg-white/60 dark:bg-white/[0.03] border border-gray-200 dark:border-white/10 rounded-3xl p-8 shadow-2xl">
+          <div className="text-center mb-8">
+            <motion.h1 
+              initial={{ y: -10, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.1, type: "spring" }}
+              className="text-4xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-violet-600 to-fuchsia-500 mb-2"
+            >
+              Sign Up
+            </motion.h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">
+              Join the ultimate Jamming Community
+            </p>
+          </div>
+
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <Input
-              label="Full Name"
               type="text"
-              placeholder="Enter your full name"
+              placeholder="Full Name"
               {...register('name')}
               error={errors.name?.message}
+              className="bg-gray-100 dark:bg-white/5 border-transparent focus:bg-white dark:focus:bg-[#121212] transition-colors"
             />
 
             <Input
-              label="Email"
               type="email"
-              placeholder="Enter your email"
+              placeholder="Email address"
               {...register('email')}
               error={errors.email?.message}
+              className="bg-gray-100 dark:bg-white/5 border-transparent focus:bg-white dark:focus:bg-[#121212] transition-colors"
             />
 
             <div className="relative">
               <Input
-                label="Password"
                 type={showPassword ? 'text' : 'password'}
-                placeholder="Enter your password"
+                placeholder="Password"
                 {...register('password')}
                 error={errors.password?.message}
+                className="bg-gray-100 dark:bg-white/5 border-transparent focus:bg-white dark:focus:bg-[#121212] transition-colors pr-12"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-9 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                className="absolute right-3 top-3 text-xs font-semibold text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors"
               >
                 {showPassword ? 'Hide' : 'Show'}
               </button>
@@ -111,66 +125,42 @@ export const Register = () => {
 
             <div className="relative">
               <Input
-                label="Confirm Password"
                 type={showConfirmPassword ? 'text' : 'password'}
-                placeholder="Confirm your password"
+                placeholder="Confirm password"
                 {...register('confirmPassword')}
                 error={errors.confirmPassword?.message}
+                className="bg-gray-100 dark:bg-white/5 border-transparent focus:bg-white dark:focus:bg-[#121212] transition-colors pr-12"
               />
               <button
                 type="button"
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                className="absolute right-3 top-9 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                className="absolute right-3 top-3 text-xs font-semibold text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors"
               >
                 {showConfirmPassword ? 'Hide' : 'Show'}
               </button>
             </div>
 
-            <Input
-              label="Bio (Optional)"
-              type="text"
-              placeholder="Tell us about yourself"
-              {...register('bio')}
-              error={errors.bio?.message}
-            />
-
-            <Input
-              label="Interests (Optional)"
-              type="text"
-              placeholder="e.g., Jazz, Rock, Classical"
-              {...register('interests')}
-              error={errors.interests?.message}
-            />
-
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                required
-                className="rounded border-gray-300 text-primary focus:ring-primary"
-              />
-              <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">
-                I agree to the Terms & Conditions
-              </span>
+            <div className="pt-2">
+              <Button 
+                type="submit" 
+                isLoading={isLoading} 
+                className="w-full h-11 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-500 hover:from-violet-500 hover:to-fuchsia-400 text-white font-semibold shadow-lg shadow-violet-500/25 transition-all active:scale-[0.98]"
+              >
+                Create Account
+              </Button>
             </div>
-
-            <Button type="submit" isLoading={isLoading} className="w-full">
-              Create Account
-            </Button>
           </form>
 
           <div className="mt-6 text-center">
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              Already have an account?{' '}
-              <Link
-                to={ROUTES.LOGIN}
-                className="text-primary font-semibold hover:underline"
-              >
-                Sign in
-              </Link>
-            </p>
+            <Link 
+              to={ROUTES.LOGIN}
+              className="text-sm font-semibold text-violet-600 dark:text-violet-400 hover:text-violet-500 transition-colors"
+            >
+              Already have an account? Log in.
+            </Link>
           </div>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 };
