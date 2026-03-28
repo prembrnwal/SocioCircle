@@ -1,13 +1,27 @@
-import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { IoCalendarOutline, IoTimeOutline, IoTextOutline, IoMicOutline, IoArrowBack } from 'react-icons/io5';
 import { motion } from 'framer-motion';
 import { toast } from 'react-toastify';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { format, addHours } from 'date-fns';
+
 import { apiService } from '../services/api';
 import { Button } from '../components/common/Button';
 import { ROUTES } from '../config/constants';
-import { format, addHours } from 'date-fns';
+
+const sessionSchema = z.object({
+  title: z.string().min(5, 'Title must be at least 5 characters'),
+  description: z.string().min(10, 'Description must be at least 10 characters').max(500, 'Description is too long'),
+  startTime: z.string().refine((date) => new Date(date) > new Date(), {
+    message: 'Start time must be in the future',
+  }),
+  durationMinutes: z.coerce.number().min(15).max(300),
+});
+
+type SessionFormData = z.infer<typeof sessionSchema>;
 
 export const Sessions = () => {
   const navigate = useNavigate();
@@ -15,28 +29,34 @@ export const Sessions = () => {
   const groupId = searchParams.get('groupId');
   const queryClient = useQueryClient();
 
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [startTime, setStartTime] = useState(
-    format(addHours(new Date(), 1), "yyyy-MM-dd'T'HH:mm")
-  );
-  const [duration, setDuration] = useState('60');
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<SessionFormData>({
+    resolver: zodResolver(sessionSchema),
+    defaultValues: {
+      title: '',
+      description: '',
+      startTime: format(addHours(new Date(), 1), "yyyy-MM-dd'T'HH:mm"),
+      durationMinutes: 60,
+    },
+  });
 
   const createSessionMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (data: SessionFormData) => {
       if (!groupId) throw new Error('Group ID is missing');
-      // Append seconds and timezone if backend requires it. ISO standard.
-      const formattedStartTime = new Date(startTime).toISOString();
+      const formattedStartTime = new Date(data.startTime).toISOString();
       return apiService.createSession(
         Number(groupId),
-        title,
-        description,
+        data.title,
+        data.description,
         formattedStartTime,
-        Number(duration)
+        data.durationMinutes
       );
     },
     onSuccess: () => {
-      toast.success('Jam session scheduled successfully!');
+      toast.success('Jam session scheduled successfully! 🎉');
       queryClient.invalidateQueries({ queryKey: ['groupSessions', groupId] });
       navigate(ROUTES.GROUP_DETAIL.replace(':groupId', groupId!));
     },
@@ -45,13 +65,8 @@ export const Sessions = () => {
     },
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!title.trim() || !description.trim() || !startTime || !duration) {
-      toast.error('Please fill in all fields');
-      return;
-    }
-    createSessionMutation.mutate();
+  const onSubmit = (data: SessionFormData) => {
+    createSessionMutation.mutate(data);
   };
 
   if (!groupId) {
@@ -69,6 +84,7 @@ export const Sessions = () => {
     <motion.div 
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
       className="max-w-2xl mx-auto px-4 py-8 pb-32 md:pb-12"
     >
       <div className="flex items-center gap-4 mb-8">
@@ -86,8 +102,8 @@ export const Sessions = () => {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="bg-white dark:bg-[#121212] rounded-3xl p-6 sm:p-8 border border-gray-100 dark:border-white/5 shadow-xl backdrop-blur-xl">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        <div className="bg-white dark:bg-[#121212] rounded-3xl p-6 sm:p-8 border border-gray-100 dark:border-white/5 shadow-xl backdrop-blur-xl hover:shadow-2xl transition-shadow duration-300">
           <div className="flex items-center gap-3 mb-6 pb-6 border-b border-gray-100 dark:border-white/5">
             <div className="w-12 h-12 rounded-xl bg-violet-50 dark:bg-violet-900/20 flex items-center justify-center">
               <IoMicOutline className="w-6 h-6 text-violet-600 dark:text-violet-400" />
@@ -101,59 +117,55 @@ export const Sessions = () => {
           <div className="space-y-5">
             <div>
               <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-2">Event Title</label>
-              <div className="relative">
+              <div className="relative group">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <IoTextOutline className="h-5 w-5 text-gray-400" />
+                  <IoTextOutline className={`h-5 w-5 ${errors.title ? 'text-red-400' : 'text-gray-400 group-focus-within:text-violet-500 transition-colors'}`} />
                 </div>
                 <input
                   type="text"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  className="w-full pl-11 pr-4 py-3 bg-gray-50 dark:bg-[#1a1a1a] border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all outline-none text-gray-900 dark:text-white"
+                  {...register('title')}
+                  className={`w-full pl-11 pr-4 py-3 bg-gray-50 dark:bg-[#1a1a1a] border ${errors.title ? 'border-red-500/50' : 'border-gray-200 dark:border-white/10'} rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all outline-none text-gray-900 dark:text-white`}
                   placeholder="e.g. Weekend Synth Jam"
-                  required
                 />
               </div>
+              {errors.title && <p className="mt-1.5 text-sm text-red-500">{errors.title.message}</p>}
             </div>
 
             <div>
               <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-2">Description</label>
               <textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
+                {...register('description')}
                 rows={4}
-                className="w-full px-4 py-3 bg-gray-50 dark:bg-[#1a1a1a] border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all outline-none text-gray-900 dark:text-white resize-none"
+                className={`w-full px-4 py-3 bg-gray-50 dark:bg-[#1a1a1a] border ${errors.description ? 'border-red-500/50' : 'border-gray-200 dark:border-white/10'} rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all outline-none text-gray-900 dark:text-white resize-none`}
                 placeholder="Describe what you plan to do... (e.g. 'Looking to jam over some lofi hip hop beats')"
-                required
               />
+              {errors.description && <p className="mt-1.5 text-sm text-red-500">{errors.description.message}</p>}
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <div>
                 <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-2">Date & Time</label>
-                <div className="relative">
+                <div className="relative group">
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <IoCalendarOutline className="h-5 w-5 text-gray-400" />
+                    <IoCalendarOutline className={`h-5 w-5 ${errors.startTime ? 'text-red-400' : 'text-gray-400 group-focus-within:text-violet-500 transition-colors'}`} />
                   </div>
                   <input
                     type="datetime-local"
-                    value={startTime}
-                    onChange={(e) => setStartTime(e.target.value)}
-                    className="w-full pl-11 pr-4 py-3 bg-gray-50 dark:bg-[#1a1a1a] border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all outline-none text-gray-900 dark:text-white"
-                    required
+                    {...register('startTime')}
+                    className={`w-full pl-11 pr-4 py-3 bg-gray-50 dark:bg-[#1a1a1a] border ${errors.startTime ? 'border-red-500/50' : 'border-gray-200 dark:border-white/10'} rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all outline-none text-gray-900 dark:text-white`}
                   />
                 </div>
+                {errors.startTime && <p className="mt-1.5 text-sm text-red-500">{errors.startTime.message}</p>}
               </div>
 
               <div>
                 <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-2">Duration (Minutes)</label>
-                <div className="relative">
+                <div className="relative group">
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <IoTimeOutline className="h-5 w-5 text-gray-400" />
+                    <IoTimeOutline className="h-5 w-5 text-gray-400 group-focus-within:text-violet-500 transition-colors" />
                   </div>
                   <select
-                    value={duration}
-                    onChange={(e) => setDuration(e.target.value)}
+                    {...register('durationMinutes')}
                     className="w-full pl-11 pr-4 py-3 bg-gray-50 dark:bg-[#1a1a1a] border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all outline-none text-gray-900 dark:text-white appearance-none"
                   >
                     <option value="15">15 Minutes</option>
