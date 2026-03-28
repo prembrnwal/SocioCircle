@@ -4,6 +4,8 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'react-toastify';
+import { motion } from 'framer-motion';
+import { IoArrowBack, IoCameraOutline, IoSettingsOutline, IoLockClosedOutline } from 'react-icons/io5';
 import { apiService } from '../services/api';
 import { useAuthStore } from '../stores/authStore';
 import { Button, Input, Textarea } from '../components/common';
@@ -41,10 +43,7 @@ export const ProfileEdit = () => {
     currentUser?.profilePicture
   );
 
-  const {
-    data: user,
-    isLoading,
-  } = useQuery({
+  const { data: user, isLoading } = useQuery({
     queryKey: ['user', 'me'],
     queryFn: () => apiService.getCurrentUser(),
   });
@@ -53,7 +52,6 @@ export const ProfileEdit = () => {
     register: registerProfile,
     handleSubmit: handleSubmitProfile,
     formState: { errors: profileErrors },
-    reset: resetProfile,
   } = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
@@ -121,132 +119,175 @@ export const ProfileEdit = () => {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Spinner size="lg" />
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Spinner size="lg" className="text-violet-500" />
       </div>
     );
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-6 pb-24 md:pb-6">
-      <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">
-        Edit Profile
-      </h1>
+    <motion.div 
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="min-h-screen bg-gray-50 dark:bg-[#0a0a0a] pb-24 md:pb-12 pt-4 sm:pt-8"
+    >
+      <div className="max-w-2xl mx-auto px-4 sm:px-0">
+        
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8">
+          <button
+            onClick={() => navigate(-1)}
+            className="flex items-center justify-center w-10 h-10 rounded-full bg-white dark:bg-[#1a1a1a] shadow-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors"
+          >
+            <IoArrowBack className="w-6 h-6" />
+          </button>
+          <h1 className="text-xl font-bold tracking-tight text-gray-900 dark:text-white">Edit Profile</h1>
+          <div className="w-10 h-10" /> {/* Spacer */}
+        </div>
 
-      {/* Profile Picture */}
-      <div className="card p-6 mb-6">
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">
-          Profile Picture
-        </label>
-        <div className="flex items-center gap-6">
-          <Avatar src={profilePicture} alt={user?.name || 'User'} size="xl" />
-          <div>
-            <Button
-              variant="outline"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploadPictureMutation.isPending}
-            >
-              {uploadPictureMutation.isPending ? 'Uploading...' : 'Change Photo'}
-            </Button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              onChange={handleFileSelect}
-              className="hidden"
-            />
-          </div>
+        <div className="space-y-6">
+          
+          {/* Section: Profile Picture */}
+          <section className="bg-white dark:bg-[#121212] rounded-3xl p-6 border border-gray-100 dark:border-white/5 shadow-xl backdrop-blur-xl text-center">
+            <h2 className="text-sm font-bold text-gray-500 uppercase tracking-widest mb-6 border-b border-gray-100 dark:border-white/5 pb-4">
+              Profile Picture
+            </h2>
+            <div className="flex flex-col items-center justify-center">
+              <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+                <Avatar 
+                  src={profilePicture} 
+                  alt={user?.name || 'User'} 
+                  size="xl" 
+                  className="w-32 h-32 text-4xl mb-4 border-4 border-gray-50 dark:border-white/5 shadow-lg group-hover:opacity-80 transition-opacity" 
+                />
+                {uploadPictureMutation.isPending ? (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full w-32 h-32 mb-4 mx-auto">
+                    <Spinner size="md" className="text-white" />
+                  </div>
+                ) : (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-full w-32 h-32 mb-4 mx-auto">
+                    <IoCameraOutline className="w-10 h-10 text-white" />
+                  </div>
+                )}
+              </div>
+              
+              <Button
+                variant="outline"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadPictureMutation.isPending}
+                className="mt-2 rounded-xl text-sm font-semibold"
+              >
+                Change Photo
+              </Button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleFileSelect}
+                className="hidden"
+              />
+            </div>
+          </section>
+
+          {/* Section: Profile Info */}
+          <section className="bg-white dark:bg-[#121212] rounded-3xl p-6 border border-gray-100 dark:border-white/5 shadow-xl backdrop-blur-xl">
+            <div className="flex items-center gap-2 mb-6 border-b border-gray-100 dark:border-white/5 pb-4">
+              <IoSettingsOutline className="w-5 h-5 text-violet-500" />
+              <h2 className="text-sm font-bold text-gray-500 uppercase tracking-widest">
+                Public Information
+              </h2>
+            </div>
+            
+            <form onSubmit={handleSubmitProfile((data) => updateProfileMutation.mutate(data))} className="space-y-5">
+              <Input
+                label="Name"
+                placeholder="Jane Doe"
+                {...registerProfile('name')}
+                error={profileErrors.name?.message}
+                className="bg-gray-50 dark:bg-white/5 border-transparent focus:bg-white dark:focus:bg-[#1a1a1a] rounded-xl"
+              />
+              <Textarea
+                label="Bio"
+                placeholder="Write something about yourself..."
+                {...registerProfile('bio')}
+                error={profileErrors.bio?.message}
+                maxLength={150}
+                className="bg-gray-50 dark:bg-white/5 border-transparent focus:bg-white dark:focus:bg-[#1a1a1a] rounded-xl min-h-[120px]"
+              />
+              <Input
+                label="Interests"
+                placeholder="e.g., Jazz, Rock, Classical"
+                {...registerProfile('interests')}
+                error={profileErrors.interests?.message}
+                className="bg-gray-50 dark:bg-white/5 border-transparent focus:bg-white dark:focus:bg-[#1a1a1a] rounded-xl"
+              />
+              <div className="pt-4 flex gap-4">
+                <Button
+                  type="button"
+                  onClick={() => navigate(-1)}
+                  className="flex-1 bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 text-gray-900 dark:text-white rounded-xl font-bold h-12"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  isLoading={updateProfileMutation.isPending}
+                  className="flex-1 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 text-white rounded-xl shadow-lg font-bold h-12 active:scale-95 transition-transform"
+                >
+                  Save Changes
+                </Button>
+              </div>
+            </form>
+          </section>
+
+          {/* Section: Change Password */}
+          <section className="bg-white dark:bg-[#121212] rounded-3xl p-6 border border-gray-100 dark:border-white/5 shadow-xl backdrop-blur-xl">
+            <div className="flex items-center gap-2 mb-6 border-b border-gray-100 dark:border-white/5 pb-4">
+              <IoLockClosedOutline className="w-5 h-5 text-violet-500" />
+              <h2 className="text-sm font-bold text-gray-500 uppercase tracking-widest">
+                Change Password
+              </h2>
+            </div>
+
+            <form onSubmit={handleSubmitPassword((data) => changePasswordMutation.mutate({ currentPassword: data.currentPassword, newPassword: data.newPassword }))} className="space-y-5">
+              <Input
+                label="Current Password"
+                type="password"
+                placeholder="••••••••"
+                {...registerPassword('currentPassword')}
+                error={passwordErrors.currentPassword?.message}
+                className="bg-gray-50 dark:bg-white/5 border-transparent focus:bg-white dark:focus:bg-[#1a1a1a] rounded-xl"
+              />
+              <Input
+                label="New Password"
+                type="password"
+                placeholder="••••••••"
+                {...registerPassword('newPassword')}
+                error={passwordErrors.newPassword?.message}
+                className="bg-gray-50 dark:bg-white/5 border-transparent focus:bg-white dark:focus:bg-[#1a1a1a] rounded-xl"
+              />
+              <Input
+                label="Confirm New Password"
+                type="password"
+                placeholder="••••••••"
+                {...registerPassword('confirmPassword')}
+                error={passwordErrors.confirmPassword?.message}
+                className="bg-gray-50 dark:bg-white/5 border-transparent focus:bg-white dark:focus:bg-[#1a1a1a] rounded-xl"
+              />
+              <div className="pt-4">
+                <Button
+                  type="submit"
+                  isLoading={changePasswordMutation.isPending}
+                  className="w-full bg-gray-900 dark:bg-white/10 hover:bg-gray-800 dark:hover:bg-white/20 text-white dark:text-white rounded-xl font-bold h-12 active:scale-[0.98] transition-all"
+                >
+                  Update Password
+                </Button>
+              </div>
+            </form>
+          </section>
+
         </div>
       </div>
-
-      {/* Profile Form */}
-      <div className="card p-6 mb-6">
-        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
-          Profile Information
-        </h2>
-        <form
-          onSubmit={handleSubmitProfile((data) => updateProfileMutation.mutate(data))}
-          className="space-y-4"
-        >
-          <Input
-            label="Name"
-            {...registerProfile('name')}
-            error={profileErrors.name?.message}
-          />
-          <Textarea
-            label="Bio"
-            {...registerProfile('bio')}
-            error={profileErrors.bio?.message}
-            maxLength={150}
-          />
-          <Input
-            label="Interests"
-            placeholder="e.g., Jazz, Rock, Classical"
-            {...registerProfile('interests')}
-            error={profileErrors.interests?.message}
-          />
-          <div className="flex gap-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => navigate(-1)}
-              className="flex-1"
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              isLoading={updateProfileMutation.isPending}
-              className="flex-1"
-            >
-              Save Changes
-            </Button>
-          </div>
-        </form>
-      </div>
-
-      {/* Change Password */}
-      <div className="card p-6">
-        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
-          Change Password
-        </h2>
-        <form
-          onSubmit={handleSubmitPassword((data) =>
-            changePasswordMutation.mutate({
-              currentPassword: data.currentPassword,
-              newPassword: data.newPassword,
-            })
-          )}
-          className="space-y-4"
-        >
-          <Input
-            label="Current Password"
-            type="password"
-            {...registerPassword('currentPassword')}
-            error={passwordErrors.currentPassword?.message}
-          />
-          <Input
-            label="New Password"
-            type="password"
-            {...registerPassword('newPassword')}
-            error={passwordErrors.newPassword?.message}
-          />
-          <Input
-            label="Confirm New Password"
-            type="password"
-            {...registerPassword('confirmPassword')}
-            error={passwordErrors.confirmPassword?.message}
-          />
-          <Button
-            type="submit"
-            isLoading={changePasswordMutation.isPending}
-            variant="outline"
-            className="w-full"
-          >
-            Change Password
-          </Button>
-        </form>
-      </div>
-    </div>
+    </motion.div>
   );
 };
