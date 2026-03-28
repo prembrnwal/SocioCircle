@@ -1,6 +1,6 @@
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { IoHeart, IoHeartOutline, IoArrowBack, IoChatbubbleOutline, IoShareSocialOutline, IoEllipsisHorizontal } from 'react-icons/io5';
+import { IoHeart, IoHeartOutline, IoArrowBack, IoChatbubbleOutline, IoShareSocialOutline, IoEllipsisHorizontal, IoTrashOutline } from 'react-icons/io5';
 import { formatDistanceToNow } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-toastify';
@@ -9,7 +9,7 @@ import { Avatar } from '../components/common/Avatar';
 import { Button } from '../components/common/Button';
 import { Spinner } from '../components/common/Loading';
 import { ROUTES } from '../config/constants';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useAuthStore } from '../stores/authStore';
 
 export const PostDetail = () => {
@@ -22,6 +22,18 @@ export const PostDetail = () => {
   const [isLiking, setIsLiking] = useState(false);
   const [lastTap, setLastTap] = useState(0);
   const [showHeartAnimation, setShowHeartAnimation] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setShowMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const { data: post, isLoading } = useQuery({
     queryKey: ['post', postId],
@@ -44,6 +56,19 @@ export const PostDetail = () => {
     },
     onError: () => {
       toast.error('Failed to add comment');
+    },
+  });
+
+  const deletePostMutation = useMutation({
+    mutationFn: () => apiService.deletePost(Number(postId!)),
+    onSuccess: () => {
+      toast.success('Post deleted successfully');
+      queryClient.invalidateQueries({ queryKey: ['posts'] });
+      queryClient.invalidateQueries({ queryKey: ['userPosts'] });
+      navigate(ROUTES.FEED);
+    },
+    onError: () => {
+      toast.error('Failed to delete post');
     },
   });
 
@@ -98,6 +123,8 @@ export const PostDetail = () => {
       </div>
     );
   }
+
+  const isOwner = currentUser?.email === post.userEmail;
 
   return (
     <motion.div 
@@ -162,9 +189,39 @@ export const PostDetail = () => {
                 </p>
               </div>
             </div>
-            <button className="p-2 text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors">
-              <IoEllipsisHorizontal className="w-5 h-5" />
-            </button>
+            
+            <div className="relative" ref={menuRef}>
+              <button 
+                onClick={() => setShowMenu(!showMenu)} 
+                className="p-2 text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors"
+              >
+                <IoEllipsisHorizontal className="w-5 h-5" />
+              </button>
+              
+              <AnimatePresence>
+                {showMenu && isOwner && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    className="absolute right-0 top-full mt-1 w-48 bg-white dark:bg-[#1a1a1a] border border-gray-100 dark:border-white/10 rounded-xl shadow-xl z-50 overflow-hidden"
+                  >
+                    <button 
+                      onClick={() => {
+                        setShowMenu(false);
+                        if (confirm('Are you sure you want to delete this post?')) {
+                          deletePostMutation.mutate();
+                        }
+                      }}
+                      className="w-full px-4 py-3 flex items-center gap-2 text-red-500 bg-transparent hover:bg-gray-50 dark:hover:bg-white/5 transition-colors font-semibold"
+                    >
+                      <IoTrashOutline className="w-5 h-5" />
+                      Delete Post
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           </div>
 
           {/* Comments Section (Scrollable Area) */}

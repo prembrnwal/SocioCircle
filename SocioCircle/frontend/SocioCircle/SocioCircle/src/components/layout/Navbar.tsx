@@ -1,5 +1,5 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { IoMoon, IoSunny, IoHomeOutline, IoHome, IoAddCircleOutline, IoAddCircle, IoCompassOutline, IoCompass, IoLogOutOutline } from 'react-icons/io5';
+import { IoMoon, IoSunny, IoHomeOutline, IoHome, IoAddCircleOutline, IoAddCircle, IoCompassOutline, IoCompass, IoLogOutOutline, IoChatbubbleOutline, IoChatbubble } from 'react-icons/io5';
 import { useAuthStore } from '../../stores/authStore';
 import { useThemeStore } from '../../stores/themeStore';
 import { Avatar } from '../common/Avatar';
@@ -41,7 +41,8 @@ export const Navbar = () => {
             {[ 
               { path: ROUTES.FEED, iconOutlined: IoHomeOutline, iconFilled: IoHome },
               { path: ROUTES.GROUPS, iconOutlined: IoCompassOutline, iconFilled: IoCompass },
-              { path: ROUTES.POST_CREATE, iconOutlined: IoAddCircleOutline, iconFilled: IoAddCircle }
+              { path: ROUTES.POST_CREATE, iconOutlined: IoAddCircleOutline, iconFilled: IoAddCircle },
+              { path: ROUTES.SESSIONS, iconOutlined: IoChatbubbleOutline, iconFilled: IoChatbubble }
             ].map((item, idx) => {
               const active = isActive(item.path);
               const Icon = active ? item.iconFilled : item.iconOutlined;
