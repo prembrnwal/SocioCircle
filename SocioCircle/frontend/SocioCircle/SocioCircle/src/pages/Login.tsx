@@ -51,7 +51,7 @@ export const Login = () => {
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-violet-600/20 blur-[120px] rounded-full mix-blend-screen pointer-events-none" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-fuchsia-600/20 blur-[120px] rounded-full mix-blend-screen pointer-events-none" />
 
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: "easeOut" }}
@@ -59,7 +59,7 @@ export const Login = () => {
       >
         <div className="backdrop-blur-xl bg-white/60 dark:bg-white/[0.03] border border-gray-200 dark:border-white/10 rounded-3xl p-8 shadow-2xl">
           <div className="text-center mb-8">
-            <motion.h1 
+            <motion.h1
               initial={{ scale: 0.95 }}
               animate={{ scale: 1 }}
               transition={{ type: "spring", stiffness: 300, damping: 20 }}
@@ -98,9 +98,9 @@ export const Login = () => {
               </button>
             </div>
 
-            <Button 
-              type="submit" 
-              isLoading={isLoading} 
+            <Button
+              type="submit"
+              isLoading={isLoading}
               className="w-full h-11 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-500 hover:from-violet-500 hover:to-fuchsia-400 text-white font-semibold shadow-lg shadow-violet-500/25 transition-all active:scale-[0.98]"
             >
               Log in
@@ -114,7 +114,7 @@ export const Login = () => {
           </div>
 
           <div className="mt-6 text-center">
-            <Link 
+            <Link
               to={ROUTES.REGISTER}
               className="text-sm font-semibold text-violet-600 dark:text-violet-400 hover:text-violet-500 transition-colors"
             >

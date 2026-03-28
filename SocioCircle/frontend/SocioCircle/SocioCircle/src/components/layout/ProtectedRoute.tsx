@@ -9,7 +9,7 @@ interface ProtectedRouteProps {
 
 // TEMPORARY: disable auth guard so you can browse all pages
 // Set this back to false when you want real auth protection.
-const DISABLE_AUTH_GUARD = false;
+const DISABLE_AUTH_GUARD = true;
 
 export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);

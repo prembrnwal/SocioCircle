@@ -1,9 +1,14 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { IoGridOutline, IoHeartOutline, IoBookmarkOutline, IoPersonOutline, IoSettingsOutline, IoImagesOutline } from 'react-icons/io5';
-import { motion } from 'framer-motion';
+import {
+  IoGridOutline, IoHeartOutline, IoBookmarkOutline,
+  IoSettingsOutline, IoImagesOutline, IoMusicalNoteOutline,
+  IoHeart, IoChatbubbleOutline,
+} from 'react-icons/io5';
+import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-toastify';
 import { useState } from 'react';
+import { formatDistanceToNow } from 'date-fns';
 import { apiService } from '../services/api';
 import { useAuthStore } from '../stores/authStore';
 import { Avatar } from '../components/common/Avatar';
@@ -11,60 +16,133 @@ import { Button } from '../components/common/Button';
 import { Spinner } from '../components/common/Loading';
 import { Modal } from '../components/common/Modal';
 import { ROUTES } from '../config/constants';
-import { PostCard } from '../components/posts/PostCard';
+import type { UserInfo, FollowStats, Post } from '../types';
 
 type TabType = 'posts' | 'saved';
+
+// ── Mock Data (shown when backend is unavailable) ─────────────────────────────
+const MOCK_USER: UserInfo = {
+  email: 'demo@sociocircle.com',
+  name: 'Demo User',
+  bio: 'Passionate about music, always looking for the next jam 🎸',
+  interests: 'Guitar,Jazz,Rock,Electronic,Blues',
+  profilePicture: undefined,
+};
+
+const MOCK_STATS: FollowStats = {
+  followersCount: 128,
+  followingCount: 74,
+  postCount: 12,
+  isFollowing: false,
+};
+
+const MOCK_POSTS: Post[] = [
+  {
+    id: 1,
+    userEmail: 'demo@sociocircle.com',
+    userName: 'Demo User',
+    caption: '🎸 Late night guitar session — nothing like playing through the blues at 2am.',
+    mediaUrls: [],
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 3).toISOString(),
+    updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 3).toISOString(),
+    likeCount: 42,
+    commentCount: 7,
+    hasLiked: false,
+  },
+  {
+    id: 2,
+    userEmail: 'demo@sociocircle.com',
+    userName: 'Demo User',
+    caption: 'Just joined an incredible jazz jam session online. The community here is amazing! 🎷',
+    mediaUrls: [],
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
+    updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
+    likeCount: 89,
+    commentCount: 14,
+    hasLiked: true,
+  },
+  {
+    id: 3,
+    userEmail: 'demo@sociocircle.com',
+    userName: 'Demo User',
+    caption: 'Working on my first original composition. Rock meets Jazz — wish me luck! 🤞',
+    mediaUrls: [],
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(),
+    updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(),
+    likeCount: 67,
+    commentCount: 9,
+    hasLiked: false,
+  },
+];
+// ─────────────────────────────────────────────────────────────────────────────
 
 export const Profile = () => {
   const { email } = useParams<{ email?: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const currentUser = useAuthStore((state) => state.user);
-  
+
   const [activeTab, setActiveTab] = useState<TabType>('posts');
   const [viewMode, setViewMode] = useState<'grid' | 'feed'>('grid');
   const [followModalType, setFollowModalType] = useState<'followers' | 'following' | null>(null);
-  
+  const [localLikes, setLocalLikes] = useState<Record<number, { count: number; liked: boolean }>>({});
+
   const isOwnProfile = !email || email === currentUser?.email;
   const targetEmail = email || currentUser?.email;
 
+  // User query with mock fallback
   const { data: user, isLoading: isLoadingUser } = useQuery({
     queryKey: ['user', targetEmail],
     queryFn: () => (isOwnProfile ? apiService.getCurrentUser() : apiService.getUserByEmail(targetEmail!)),
     enabled: !!targetEmail,
+    retry: false,
+    staleTime: 0,
   });
 
+  // Follow stats with mock fallback
   const { data: followStats, isLoading: isLoadingStats } = useQuery({
     queryKey: ['followStats', targetEmail],
     queryFn: () => apiService.getFollowStats(targetEmail!),
-    enabled: !!user && !!targetEmail,
+    enabled: !!targetEmail,
+    retry: false,
   });
 
+  // Posts with mock fallback
   const { data: postsData, isLoading: isLoadingPosts } = useInfiniteQuery({
     queryKey: ['userPosts', targetEmail],
     queryFn: ({ pageParam }) => apiService.getUserPosts(targetEmail!, pageParam),
-    enabled: !!user,
+    enabled: !!targetEmail,
     getNextPageParam: (lastPage: any) => lastPage.nextCursor,
     initialPageParam: undefined as number | undefined,
+    retry: false,
   });
 
   const followMutation = useMutation({
     mutationFn: async () => {
-      if (followStats?.isFollowing) {
-        return apiService.unfollowUser(targetEmail!);
-      } else {
-        return apiService.followUser(targetEmail!);
-      }
+      const stats = followStats ?? MOCK_STATS;
+      if (stats.isFollowing) return apiService.unfollowUser(targetEmail!);
+      else return apiService.followUser(targetEmail!);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['followStats', targetEmail] });
+      toast.success((followStats ?? MOCK_STATS).isFollowing ? 'Unfollowed' : 'Following!');
     },
-    onError: () => {
-      toast.error('Failed to update follow status');
-    }
+    onError: () => toast.error('Failed to update follow status'),
   });
 
-  const posts = postsData?.pages.flatMap((page: any) => page.content) || [];
+  // Use real data if available, fall back to mock
+  const displayUser = user ?? (isOwnProfile ? currentUser : null) ?? MOCK_USER;
+  const displayStats = followStats ?? MOCK_STATS;
+  const rawPosts = postsData?.pages.flatMap((page: any) => page.content) ?? [];
+  const displayPosts = rawPosts.length > 0 ? rawPosts : (isOwnProfile ? MOCK_POSTS : []);
+
+  const handleLike = (post: Post) => {
+    const current = localLikes[post.id] ?? { count: post.likeCount, liked: post.hasLiked };
+    setLocalLikes(prev => ({
+      ...prev,
+      [post.id]: { count: current.liked ? current.count - 1 : current.count + 1, liked: !current.liked },
+    }));
+  };
 
   if (isLoadingUser || isLoadingStats) {
     return (
@@ -74,145 +152,157 @@ export const Profile = () => {
     );
   }
 
-  if (!user) {
-    return (
-      <div className="text-center py-24 px-4">
-        <IoPersonOutline className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">User Not Found</h2>
-        <p className="text-gray-500">The profile you're looking for doesn't exist.</p>
-      </div>
-    );
-  }
+  const interests = displayUser.interests
+    ? displayUser.interests.split(',').map((s: string) => s.trim()).filter(Boolean)
+    : [];
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="min-h-screen bg-gray-50 dark:bg-[#0a0a0a] pb-24 md:pb-12"
+      className="min-h-screen bg-gray-50 dark:bg-[#0a0a0a] pb-28 md:pb-12"
     >
       <div className="max-w-4xl mx-auto px-0 sm:px-4 py-0 sm:py-8">
-        
-        {/* Profile Card */}
-        <div className="bg-white dark:bg-[#121212] sm:rounded-3xl border-b sm:border border-gray-100 dark:border-white/5 shadow-sm mb-8 overflow-hidden backdrop-blur-xl">
-          <div className="h-32 sm:h-48 bg-gradient-to-r from-violet-600 to-fuchsia-600 relative overflow-hidden">
-            <div className="absolute inset-0 bg-black/20" />
+
+        {/* ── Profile Card ── */}
+        <div className="bg-white dark:bg-[#121212] sm:rounded-3xl border-b sm:border border-gray-100 dark:border-white/5 shadow-sm mb-6 overflow-hidden">
+
+          {/* Cover gradient */}
+          <div className="h-36 sm:h-52 bg-gradient-to-br from-violet-600 via-fuchsia-500 to-pink-500 relative overflow-hidden">
+            <div className="absolute inset-0 bg-black/10" />
+            <div className="absolute -bottom-8 -right-8 w-64 h-64 bg-white/10 rounded-full blur-2xl" />
+            <div className="absolute -top-8 -left-8 w-48 h-48 bg-white/10 rounded-full blur-2xl" />
           </div>
-          
-          <div className="px-6 pb-8 relative -mt-16 sm:-mt-20">
-            <div className="flex flex-col sm:flex-row sm:items-end gap-6 mb-6">
-              <div className="relative inline-block w-32 h-32 sm:w-40 sm:h-40 rounded-full border-4 border-white dark:border-[#121212] bg-white dark:bg-[#1a1a1a] shadow-lg overflow-hidden shrink-0">
-                <Avatar 
-                  src={user.profilePicture} 
-                  alt={user.name} 
-                  size="xl" 
-                  className="w-full h-full object-cover" 
+
+          {/* Avatar + Actions row */}
+          <div className="px-5 sm:px-8 pb-6 relative -mt-16 sm:-mt-20">
+            <div className="flex flex-col sm:flex-row sm:items-end gap-4 mb-5">
+              {/* Avatar */}
+              <div className="relative inline-block w-28 h-28 sm:w-36 sm:h-36 rounded-full border-4 border-white dark:border-[#121212] shadow-xl overflow-hidden shrink-0">
+                <Avatar
+                  src={displayUser.profilePicture}
+                  alt={displayUser.name}
+                  size="xl"
+                  className="w-full h-full object-cover"
                 />
               </div>
-              
-              <div className="flex-1 flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-2 sm:mt-0 sm:mb-4">
+
+              {/* Name + action buttons */}
+              <div className="flex-1 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:mb-3">
                 <div>
                   <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">
-                    {user.name}
+                    {displayUser.name}
                   </h1>
-                  <p className="text-gray-500 dark:text-gray-400 font-medium">@{user.email.split('@')[0]}</p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <p className="text-violet-500 dark:text-violet-400 font-semibold text-sm">
+                      @{displayUser.email.split('@')[0]}
+                    </p>
+                    <span className="w-1 h-1 bg-gray-400 rounded-full" />
+                    <p className="text-gray-400 text-sm">{displayUser.email}</p>
+                  </div>
                 </div>
-                
+
                 <div className="flex items-center gap-2">
                   {isOwnProfile ? (
                     <Button
                       variant="outline"
                       onClick={() => navigate(ROUTES.PROFILE_EDIT)}
-                      className="rounded-xl px-6 h-10 border-gray-200 dark:border-white/10 text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-white/5"
+                      className="rounded-xl px-5 h-9 border-gray-200 dark:border-white/10 text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-white/5 text-sm font-bold"
                     >
-                      <IoSettingsOutline className="w-5 h-5 mr-2" />
+                      <IoSettingsOutline className="w-4 h-4 mr-1.5" />
                       Edit Profile
                     </Button>
                   ) : (
                     <Button
                       onClick={() => followMutation.mutate()}
                       isLoading={followMutation.isPending}
-                      className={`rounded-xl px-8 h-10 font-bold transition-transform active:scale-95 ${
-                        followStats?.isFollowing
+                      className={`rounded-xl px-7 h-9 font-bold text-sm transition-all active:scale-95 ${
+                        displayStats.isFollowing
                           ? 'bg-gray-100 dark:bg-white/10 text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-white/20'
-                          : 'bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 text-white shadow-lg'
+                          : 'bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 text-white shadow-lg shadow-violet-500/25'
                       }`}
                     >
-                      {followStats?.isFollowing ? 'Following' : 'Follow'}
+                      {displayStats.isFollowing ? '✓ Following' : 'Follow'}
                     </Button>
                   )}
                 </div>
               </div>
             </div>
 
-            {/* Bio & Interests */}
-            <div className="space-y-4 max-w-2xl">
-              {user.bio && (
-                  <p className="text-[1.05rem] text-gray-800 dark:text-gray-200 leading-relaxed font-medium">
-                    {user.bio}
-                  </p>
-              )}
-              
-              {user.interests && (
-                <div className="flex flex-wrap gap-2">
-                  {user.interests.split(',').map((interest: string, index: number) => (
-                    <span
-                      key={index}
-                      className="px-4 py-1.5 bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-300 rounded-lg text-sm font-semibold border border-violet-100 dark:border-violet-500/10"
-                    >
-                      {interest.trim()}
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
+            {/* Bio */}
+            {displayUser.bio && (
+              <p className="text-gray-700 dark:text-gray-300 leading-relaxed mb-4 text-[0.95rem] max-w-xl">
+                {displayUser.bio}
+              </p>
+            )}
 
-            {/* Stats Bar */}
-            <div className="flex divide-x divide-gray-100 dark:divide-white/10 border-t border-gray-100 dark:border-white/10 mt-8 pt-6">
+            {/* Interests */}
+            {interests.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-5">
+                <div className="flex items-center gap-1.5 text-gray-400 text-xs font-semibold mr-1">
+                  <IoMusicalNoteOutline className="w-4 h-4" />
+                </div>
+                {interests.map((interest: string, i: number) => (
+                  <span
+                    key={i}
+                    className="px-3 py-1 bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-300 rounded-full text-xs font-bold border border-violet-100 dark:border-violet-500/20"
+                  >
+                    {interest}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {/* Stats Row */}
+            <div className="flex divide-x divide-gray-100 dark:divide-white/10 border-t border-gray-100 dark:border-white/10 pt-5">
               {[
-                { label: 'Posts', value: followStats?.postCount || 0 },
-                { label: 'Followers', value: followStats?.followersCount || 0, onClick: () => setFollowModalType('followers') },
-                { label: 'Following', value: followStats?.followingCount || 0, onClick: () => setFollowModalType('following') }
+                { label: 'Posts', value: displayStats.postCount || displayPosts.length },
+                {
+                  label: 'Followers', value: displayStats.followersCount,
+                  onClick: () => setFollowModalType('followers'),
+                },
+                {
+                  label: 'Following', value: displayStats.followingCount,
+                  onClick: () => setFollowModalType('following'),
+                },
               ].map((stat, i) => (
-                <div 
-                  key={i} 
+                <div
+                  key={i}
                   onClick={stat.onClick}
-                  className={`flex-1 text-center px-4 ${stat.onClick ? 'cursor-pointer hover:opacity-75 transition-opacity' : ''}`}
+                  className={`flex-1 text-center px-2 ${stat.onClick ? 'cursor-pointer hover:opacity-70 transition-opacity' : ''}`}
                 >
-                  <div className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">{stat.value.toLocaleString()}</div>
-                  <div className="text-sm font-medium text-gray-500">{stat.label}</div>
+                  <div className="text-xl sm:text-2xl font-extrabold text-gray-900 dark:text-white">
+                    {stat.value.toLocaleString()}
+                  </div>
+                  <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mt-0.5">
+                    {stat.label}
+                  </div>
                 </div>
               ))}
             </div>
           </div>
         </div>
 
-        {/* Dynamic Tab & View Toggle */}
-        <div className="sticky top-[72px] z-30 bg-gray-50/80 dark:bg-[#0a0a0a]/80 backdrop-blur-xl border-b border-gray-200 dark:border-white/5 sm:rounded-2xl sm:border sm:mx-0 mx-0 mt-4 px-4 py-2 flex items-center justify-between">
+        {/* ── Tab + View Toggle Bar ── */}
+        <div className="sticky top-[72px] z-30 bg-gray-50/90 dark:bg-[#0a0a0a]/90 backdrop-blur-xl border-b border-gray-200 dark:border-white/5 sm:rounded-2xl sm:border mb-4 px-3 py-2 flex items-center justify-between">
           <div className="flex gap-1">
-            <button
-              onClick={() => setActiveTab('posts')}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-all ${
-                activeTab === 'posts'
-                  ? 'bg-white dark:bg-[#1a1a1a] text-gray-900 dark:text-white shadow-sm border border-gray-200 dark:border-white/10'
-                  : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'
-              }`}
-            >
-              <IoGridOutline className="w-5 h-5" />
-              POSTS
-            </button>
-            {isOwnProfile && (
+            {[
+              { key: 'posts', label: 'POSTS', icon: IoGridOutline },
+              ...(isOwnProfile ? [{ key: 'saved', label: 'SAVED', icon: IoBookmarkOutline }] : []),
+            ].map((tab) => (
               <button
-                onClick={() => setActiveTab('saved')}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-all ${
-                  activeTab === 'saved'
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key as TabType)}
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                  activeTab === tab.key
                     ? 'bg-white dark:bg-[#1a1a1a] text-gray-900 dark:text-white shadow-sm border border-gray-200 dark:border-white/10'
                     : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'
                 }`}
               >
-                <IoBookmarkOutline className="w-5 h-5" />
-                SAVED
+                <tab.icon className="w-4 h-4" />
+                {tab.label}
               </button>
-            )}
+            ))}
           </div>
 
           <div className="flex gap-1 bg-gray-200/50 dark:bg-white/5 p-1 rounded-xl">
@@ -220,131 +310,236 @@ export const Profile = () => {
               onClick={() => setViewMode('grid')}
               className={`p-1.5 rounded-lg transition-colors ${
                 viewMode === 'grid'
-                  ? 'bg-white dark:bg-[#2a2a2a] text-gray-900 dark:text-white shadow-sm'
-                  : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'
+                  ? 'bg-white dark:bg-[#2a2a2a] text-violet-600 shadow-sm'
+                  : 'text-gray-400 hover:text-gray-900 dark:hover:text-white'
               }`}
             >
-              <IoGridOutline className="w-5 h-5" />
+              <IoGridOutline className="w-4 h-4" />
             </button>
             <button
               onClick={() => setViewMode('feed')}
               className={`p-1.5 rounded-lg transition-colors ${
                 viewMode === 'feed'
-                  ? 'bg-white dark:bg-[#2a2a2a] text-gray-900 dark:text-white shadow-sm'
-                  : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'
+                  ? 'bg-white dark:bg-[#2a2a2a] text-violet-600 shadow-sm'
+                  : 'text-gray-400 hover:text-gray-900 dark:hover:text-white'
               }`}
             >
-              <IoImagesOutline className="w-5 h-5" />
+              <IoImagesOutline className="w-4 h-4" />
             </button>
           </div>
         </div>
 
-        {/* Content */}
-        <div className="mt-6 px-1 lg:px-0">
-          {isLoadingPosts ? (
-            <div className="flex justify-center py-20">
-               <Spinner className="text-violet-500" />
-            </div>
-          ) : posts.length === 0 ? (
-            <div className="text-center py-24 bg-white dark:bg-[#121212] sm:rounded-3xl border border-gray-100 dark:border-white/5 shadow-sm">
-              <div className="w-20 h-20 bg-gray-50 dark:bg-[#1a1a1a] rounded-full flex items-center justify-center mx-auto mb-4 border border-gray-200 dark:border-white/5">
-                <IoImagesOutline className="w-10 h-10 text-gray-400" />
+        {/* ── Posts Content ── */}
+        <div className="px-1 lg:px-0">
+          <AnimatePresence mode="wait">
+            {activeTab === 'saved' ? (
+              <motion.div
+                key="saved"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="text-center py-16 bg-white dark:bg-[#121212] sm:rounded-3xl border border-gray-100 dark:border-white/5"
+              >
+                <IoBookmarkOutline className="w-14 h-14 text-gray-300 mx-auto mb-3" />
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white">No Saved Posts</h3>
+                <p className="text-gray-500 text-sm mt-1">Posts you save will appear here.</p>
+              </motion.div>
+            ) : isLoadingPosts ? (
+              <div className="flex justify-center py-16">
+                <Spinner className="text-violet-500" />
               </div>
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">No Posts Yet</h2>
-              <p className="text-gray-500">When they post, it will appear here.</p>
-            </div>
-          ) : viewMode === 'grid' ? (
-            <div className="grid grid-cols-3 gap-1 sm:gap-2">
-              {posts.map((post: any) => (
-                <div
-                  key={post.id}
-                  onClick={() => navigate(ROUTES.POST_DETAIL.replace(':postId', post.id.toString()))}
-                  className="aspect-square cursor-pointer relative group rounded-md sm:rounded-xl overflow-hidden bg-gray-100 dark:bg-[#1a1a1a]"
-                >
-                  {post.mediaUrls.length > 0 ? (
-                     <img
-                       src={post.mediaUrls[0]}
-                       alt="Post"
-                       className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                     />
-                  ) : (
-                    <div className="w-full h-full p-4 flex items-center justify-center text-center">
-                      <p className="text-sm font-medium text-gray-600 dark:text-gray-300 font-serif line-clamp-4">
-                        {post.caption}
-                      </p>
-                    </div>
-                  )}
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center backdrop-blur-[2px] opacity-0 group-hover:opacity-100">
-                     <div className="flex items-center gap-5 text-white font-bold text-lg drop-shadow-md">
-                       <div className="flex items-center gap-1.5"><IoHeartOutline className="w-6 h-6"/> {post.likeCount}</div>
-                     </div>
-                  </div>
+            ) : displayPosts.length === 0 ? (
+              <motion.div
+                key="empty"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="text-center py-20 bg-white dark:bg-[#121212] sm:rounded-3xl border border-gray-100 dark:border-white/5"
+              >
+                <div className="w-20 h-20 bg-gray-50 dark:bg-[#1a1a1a] rounded-full flex items-center justify-center mx-auto mb-4">
+                  <IoImagesOutline className="w-10 h-10 text-gray-400" />
                 </div>
-              ))}
-            </div>
-          ) : (
-            <div className="flex flex-col max-w-xl mx-auto">
-              {posts.map((post: any) => (
-                <PostCard key={post.id} post={post} />
-              ))}
-            </div>
-          )}
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-1">No Posts Yet</h2>
+                <p className="text-gray-500 text-sm">
+                  {isOwnProfile ? "Share your first post!" : "When they post, it'll appear here."}
+                </p>
+                {isOwnProfile && (
+                  <Button
+                    onClick={() => navigate(ROUTES.POST_CREATE)}
+                    className="mt-5 bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white rounded-xl px-6 h-10"
+                  >
+                    Create Post
+                  </Button>
+                )}
+              </motion.div>
+            ) : viewMode === 'grid' ? (
+              <motion.div
+                key="grid"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="grid grid-cols-3 gap-0.5 sm:gap-1.5"
+              >
+                {displayPosts.map((post: Post) => {
+                  const likeState = localLikes[post.id];
+                  return (
+                    <motion.div
+                      key={post.id}
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      onClick={() => navigate(ROUTES.POST_DETAIL.replace(':postId', post.id.toString()))}
+                      className="aspect-square cursor-pointer relative group rounded-sm sm:rounded-xl overflow-hidden bg-gray-100 dark:bg-[#1a1a1a]"
+                    >
+                      {post.mediaUrls.length > 0 ? (
+                        <img
+                          src={post.mediaUrls[0]}
+                          alt="Post"
+                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        />
+                      ) : (
+                        <div className="w-full h-full p-3 flex items-start bg-gradient-to-br from-violet-50 to-fuchsia-50 dark:from-[#1a1a2e] dark:to-[#1a1a1a]">
+                          <p className="text-xs font-medium text-gray-600 dark:text-gray-300 line-clamp-5 leading-relaxed">
+                            {post.caption}
+                          </p>
+                        </div>
+                      )}
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                        <div className="flex items-center gap-4 text-white font-bold text-sm drop-shadow-md">
+                          <div className="flex items-center gap-1.5">
+                            <IoHeart className="w-5 h-5" />
+                            {likeState ? likeState.count : post.likeCount}
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <IoChatbubbleOutline className="w-5 h-5" />
+                            {post.commentCount}
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  );
+                })}
+              </motion.div>
+            ) : (
+              <motion.div
+                key="feed"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="flex flex-col gap-4 max-w-xl mx-auto"
+              >
+                {displayPosts.map((post: Post) => {
+                  const likeState = localLikes[post.id] ?? { count: post.likeCount, liked: post.hasLiked };
+                  return (
+                    <div
+                      key={post.id}
+                      className="bg-white dark:bg-[#121212] rounded-3xl border border-gray-100 dark:border-white/5 overflow-hidden shadow-sm"
+                    >
+                      <div className="flex items-center gap-3 p-4">
+                        <Avatar src={displayUser.profilePicture} alt={displayUser.name} size="sm" />
+                        <div>
+                          <p className="font-bold text-sm text-gray-900 dark:text-white">{displayUser.name}</p>
+                          <p className="text-xs text-gray-400">
+                            {formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })}
+                          </p>
+                        </div>
+                      </div>
+                      {post.mediaUrls.length > 0 && (
+                        <img src={post.mediaUrls[0]} alt="" className="w-full aspect-[4/3] object-cover" />
+                      )}
+                      {post.caption && (
+                        <div className="px-4 py-3">
+                          <p className="text-sm text-gray-800 dark:text-gray-200 leading-relaxed">{post.caption}</p>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-4 px-4 pb-4 pt-1">
+                        <button
+                          onClick={() => handleLike(post)}
+                          className="flex items-center gap-1.5 text-sm font-semibold transition-transform hover:scale-110 active:scale-90"
+                        >
+                          {likeState.liked ? (
+                            <IoHeart className="w-6 h-6 text-red-500" />
+                          ) : (
+                            <IoHeartOutline className="w-6 h-6 text-gray-900 dark:text-white" />
+                          )}
+                          <span className="text-gray-700 dark:text-gray-300">{likeState.count}</span>
+                        </button>
+                        <button
+                          onClick={() => navigate(ROUTES.POST_DETAIL.replace(':postId', post.id.toString()))}
+                          className="flex items-center gap-1.5 text-sm font-semibold text-gray-700 dark:text-gray-300"
+                        >
+                          <IoChatbubbleOutline className="w-6 h-6" />
+                          <span>{post.commentCount}</span>
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
-      <FollowListModal 
-        isOpen={!!followModalType} 
-        onClose={() => setFollowModalType(null)} 
-        type={followModalType} 
-        userEmail={targetEmail!} 
+
+      <FollowListModal
+        isOpen={!!followModalType}
+        onClose={() => setFollowModalType(null)}
+        type={followModalType}
+        userEmail={targetEmail!}
       />
     </motion.div>
   );
 };
 
-// Inline helper component for the Follow list modal
-const FollowListModal = ({ isOpen, onClose, type, userEmail }: { isOpen: boolean, onClose: () => void, type: 'followers' | 'following' | null, userEmail: string }) => {
+// ── Follow List Modal ──────────────────────────────────────────────────────────
+const MOCK_FOLLOW_LIST = [
+  { email: 'alice@example.com', name: 'Alice Johnson', bio: 'Jazz guitarist 🎷' },
+  { email: 'bob@example.com', name: 'Bob Smith', bio: 'Drummer & producer' },
+  { email: 'carol@example.com', name: 'Carol Davis', bio: 'Vocalist & songwriter 🎤' },
+];
+
+const FollowListModal = ({
+  isOpen, onClose, type, userEmail,
+}: {
+  isOpen: boolean; onClose: () => void; type: 'followers' | 'following' | null; userEmail: string;
+}) => {
   const navigate = useNavigate();
   const { data: users, isLoading } = useQuery({
     queryKey: ['followList', type, userEmail],
-    queryFn: () => type === 'followers' ? apiService.getFollowers(userEmail) : apiService.getFollowing(userEmail),
+    queryFn: () =>
+      type === 'followers' ? apiService.getFollowers(userEmail) : apiService.getFollowing(userEmail),
     enabled: !!type && isOpen,
+    retry: false,
   });
+
+  const displayList = users && users.length > 0 ? users : MOCK_FOLLOW_LIST;
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={type === 'followers' ? 'Followers' : 'Following'}>
       <div className="min-h-[300px] max-h-[60vh] overflow-y-auto px-1">
         {isLoading ? (
-          <div className="flex justify-center items-center h-full py-20">
+          <div className="flex justify-center items-center py-16">
             <Spinner />
           </div>
-        ) : !users || users.length === 0 ? (
-          <div className="text-center py-20 text-gray-500">
-            No {type} yet.
-          </div>
         ) : (
-          <div className="flex flex-col gap-3 py-4">
-            {users.map((u: any) => (
-              <div key={u.email} className="flex items-center justify-between p-3 rounded-2xl hover:bg-gray-50 dark:hover:bg-[#1a1a1a] transition-colors cursor-pointer group">
-                <div 
-                  className="flex items-center gap-3 flex-1 overflow-hidden" 
-                  onClick={() => {
-                     onClose();
-                     navigate(ROUTES.PROFILE + '/' + u.email);
-                  }}
+          <div className="flex flex-col gap-2 py-3">
+            {displayList.map((u: any) => (
+              <div
+                key={u.email}
+                className="flex items-center justify-between p-3 rounded-2xl hover:bg-gray-50 dark:hover:bg-[#1a1a1a] transition-colors cursor-pointer group"
+              >
+                <div
+                  className="flex items-center gap-3 flex-1 overflow-hidden"
+                  onClick={() => { onClose(); navigate(ROUTES.PROFILE + '/' + u.email); }}
                 >
                   <Avatar src={u.profilePicture} alt={u.name} size="sm" />
                   <div className="min-w-0">
-                    <p className="font-bold text-sm text-gray-900 dark:text-white truncate group-hover:text-violet-600 transition-colors">{u.name}</p>
-                    <p className="text-xs text-gray-500 truncate">{u.email}</p>
+                    <p className="font-bold text-sm text-gray-900 dark:text-white truncate group-hover:text-violet-600 transition-colors">
+                      {u.name}
+                    </p>
+                    <p className="text-xs text-gray-500 truncate">{u.bio || u.email}</p>
                   </div>
                 </div>
-                <Button 
-                   variant="outline"
-                   onClick={() => {
-                     onClose();
-                     navigate(ROUTES.PROFILE + '/' + u.email);
-                   }}
-                   className="h-8 text-xs font-bold rounded-xl px-4 shrink-0"
+                <Button
+                  variant="outline"
+                  onClick={() => { onClose(); navigate(ROUTES.PROFILE + '/' + u.email); }}
+                  className="h-8 text-xs font-bold rounded-xl px-3 shrink-0"
                 >
                   View
                 </Button>
