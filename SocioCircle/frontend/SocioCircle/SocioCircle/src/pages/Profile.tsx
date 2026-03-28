@@ -1,16 +1,17 @@
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { IoGridOutline, IoHeartOutline, IoBookmarkOutline, IoPersonOutline, IoSettingsOutline, IoImagesOutline } from 'react-icons/io5';
 import { motion } from 'framer-motion';
 import { toast } from 'react-toastify';
+import { useState } from 'react';
 import { apiService } from '../services/api';
 import { useAuthStore } from '../stores/authStore';
 import { Avatar } from '../components/common/Avatar';
 import { Button } from '../components/common/Button';
 import { Spinner } from '../components/common/Loading';
+import { Modal } from '../components/common/Modal';
 import { ROUTES } from '../config/constants';
 import { PostCard } from '../components/posts/PostCard';
-import { useState } from 'react';
 
 type TabType = 'posts' | 'saved';
 
@@ -22,6 +23,7 @@ export const Profile = () => {
   
   const [activeTab, setActiveTab] = useState<TabType>('posts');
   const [viewMode, setViewMode] = useState<'grid' | 'feed'>('grid');
+  const [followModalType, setFollowModalType] = useState<'followers' | 'following' | null>(null);
   
   const isOwnProfile = !email || email === currentUser?.email;
   const targetEmail = email || currentUser?.email;
@@ -168,20 +170,17 @@ export const Profile = () => {
             <div className="flex divide-x divide-gray-100 dark:divide-white/10 border-t border-gray-100 dark:border-white/10 mt-8 pt-6">
               {[
                 { label: 'Posts', value: followStats?.postCount || 0 },
-                { label: 'Followers', value: followStats?.followersCount || 0, to: ROUTES.FOLLOWERS.replace(':email', user.email) },
-                { label: 'Following', value: followStats?.followingCount || 0, to: ROUTES.FOLLOWING.replace(':email', user.email) }
+                { label: 'Followers', value: followStats?.followersCount || 0, onClick: () => setFollowModalType('followers') },
+                { label: 'Following', value: followStats?.followingCount || 0, onClick: () => setFollowModalType('following') }
               ].map((stat, i) => (
-                stat.to ? (
-                  <Link key={i} to={stat.to} className="flex-1 text-center hover:opacity-75 transition-opacity px-4">
-                    <div className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">{stat.value.toLocaleString()}</div>
-                    <div className="text-sm font-medium text-gray-500">{stat.label}</div>
-                  </Link>
-                ) : (
-                  <div key={i} className="flex-1 text-center px-4">
-                    <div className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">{stat.value.toLocaleString()}</div>
-                    <div className="text-sm font-medium text-gray-500">{stat.label}</div>
-                  </div>
-                )
+                <div 
+                  key={i} 
+                  onClick={stat.onClick}
+                  className={`flex-1 text-center px-4 ${stat.onClick ? 'cursor-pointer hover:opacity-75 transition-opacity' : ''}`}
+                >
+                  <div className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">{stat.value.toLocaleString()}</div>
+                  <div className="text-sm font-medium text-gray-500">{stat.label}</div>
+                </div>
               ))}
             </div>
           </div>
@@ -244,7 +243,7 @@ export const Profile = () => {
         <div className="mt-6 px-1 lg:px-0">
           {isLoadingPosts ? (
             <div className="flex justify-center py-20">
-              <Spinner className="text-violet-500" />
+               <Spinner className="text-violet-500" />
             </div>
           ) : posts.length === 0 ? (
             <div className="text-center py-24 bg-white dark:bg-[#121212] sm:rounded-3xl border border-gray-100 dark:border-white/5 shadow-sm">
@@ -263,11 +262,11 @@ export const Profile = () => {
                   className="aspect-square cursor-pointer relative group rounded-md sm:rounded-xl overflow-hidden bg-gray-100 dark:bg-[#1a1a1a]"
                 >
                   {post.mediaUrls.length > 0 ? (
-                    <img
-                      src={post.mediaUrls[0]}
-                      alt="Post"
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                    />
+                     <img
+                       src={post.mediaUrls[0]}
+                       alt="Post"
+                       className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                     />
                   ) : (
                     <div className="w-full h-full p-4 flex items-center justify-center text-center">
                       <p className="text-sm font-medium text-gray-600 dark:text-gray-300 font-serif line-clamp-4">
@@ -276,9 +275,9 @@ export const Profile = () => {
                     </div>
                   )}
                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center backdrop-blur-[2px] opacity-0 group-hover:opacity-100">
-                    <div className="flex items-center gap-5 text-white font-bold text-lg drop-shadow-md">
-                      <div className="flex items-center gap-1.5"><IoHeartOutline className="w-6 h-6"/> {post.likeCount}</div>
-                    </div>
+                     <div className="flex items-center gap-5 text-white font-bold text-lg drop-shadow-md">
+                       <div className="flex items-center gap-1.5"><IoHeartOutline className="w-6 h-6"/> {post.likeCount}</div>
+                     </div>
                   </div>
                 </div>
               ))}
@@ -292,6 +291,68 @@ export const Profile = () => {
           )}
         </div>
       </div>
+      <FollowListModal 
+        isOpen={!!followModalType} 
+        onClose={() => setFollowModalType(null)} 
+        type={followModalType} 
+        userEmail={targetEmail!} 
+      />
     </motion.div>
+  );
+};
+
+// Inline helper component for the Follow list modal
+const FollowListModal = ({ isOpen, onClose, type, userEmail }: { isOpen: boolean, onClose: () => void, type: 'followers' | 'following' | null, userEmail: string }) => {
+  const navigate = useNavigate();
+  const { data: users, isLoading } = useQuery({
+    queryKey: ['followList', type, userEmail],
+    queryFn: () => type === 'followers' ? apiService.getFollowers(userEmail) : apiService.getFollowing(userEmail),
+    enabled: !!type && isOpen,
+  });
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title={type === 'followers' ? 'Followers' : 'Following'}>
+      <div className="min-h-[300px] max-h-[60vh] overflow-y-auto px-1">
+        {isLoading ? (
+          <div className="flex justify-center items-center h-full py-20">
+            <Spinner />
+          </div>
+        ) : !users || users.length === 0 ? (
+          <div className="text-center py-20 text-gray-500">
+            No {type} yet.
+          </div>
+        ) : (
+          <div className="flex flex-col gap-3 py-4">
+            {users.map((u: any) => (
+              <div key={u.email} className="flex items-center justify-between p-3 rounded-2xl hover:bg-gray-50 dark:hover:bg-[#1a1a1a] transition-colors cursor-pointer group">
+                <div 
+                  className="flex items-center gap-3 flex-1 overflow-hidden" 
+                  onClick={() => {
+                     onClose();
+                     navigate(ROUTES.PROFILE + '/' + u.email);
+                  }}
+                >
+                  <Avatar src={u.profilePicture} alt={u.name} size="sm" />
+                  <div className="min-w-0">
+                    <p className="font-bold text-sm text-gray-900 dark:text-white truncate group-hover:text-violet-600 transition-colors">{u.name}</p>
+                    <p className="text-xs text-gray-500 truncate">{u.email}</p>
+                  </div>
+                </div>
+                <Button 
+                   variant="outline"
+                   onClick={() => {
+                     onClose();
+                     navigate(ROUTES.PROFILE + '/' + u.email);
+                   }}
+                   className="h-8 text-xs font-bold rounded-xl px-4 shrink-0"
+                >
+                  View
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </Modal>
   );
 };
