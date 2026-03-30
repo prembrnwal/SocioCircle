@@ -5,6 +5,7 @@ import { useThemeStore } from '../../stores/themeStore';
 import { Avatar } from '../common/Avatar';
 import { ROUTES } from '../../config/constants';
 import { motion } from 'framer-motion';
+import { useQueryClient } from '@tanstack/react-query';
 
 export const Navbar = () => {
   const navigate = useNavigate();
@@ -12,9 +13,11 @@ export const Navbar = () => {
   const user = useAuthStore((state) => state.user);
   const logout = useAuthStore((state) => state.logout);
   const { isDark, toggleTheme } = useThemeStore();
+  const queryClient = useQueryClient();
 
   const handleLogout = () => {
     logout();
+    queryClient.clear();
     navigate(ROUTES.LOGIN);
   };
 

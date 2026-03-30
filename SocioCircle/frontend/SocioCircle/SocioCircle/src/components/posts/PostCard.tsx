@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { IoHeart, IoHeartOutline, IoChatbubbleOutline, IoShareSocialOutline, IoEllipsisHorizontal, IoChevronBack, IoChevronForward } from 'react-icons/io5';
 import { formatDistanceToNow } from 'date-fns';
@@ -23,6 +23,12 @@ export const PostCard = ({ post }: PostCardProps) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [lastTap, setLastTap] = useState(0);
   const [showHeartAnimation, setShowHeartAnimation] = useState(false);
+
+  // Sync state when post prop updates (e.g. from React Query refetch or cache invalidation)
+  useEffect(() => {
+    setLikeCount(post.likeCount);
+    setHasLiked(post.hasLiked);
+  }, [post.likeCount, post.hasLiked]);
 
   const handleLike = async (e: React.MouseEvent) => {
     e.stopPropagation();

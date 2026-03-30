@@ -294,13 +294,38 @@ class ApiService {
     const response = await this.api.get<CursorPageResponse<BackendPost>>(
       `/posts/user/${userEmail}?${params.toString()}`
     );
-    const posts = response.data.content.map((raw) => transformPost(raw));
+    const posts = await Promise.all(
+      response.data.content.map(async (raw) => {
+        try {
+          const [likesRes, countRes] = await Promise.all([
+            this.api.get<{ likeCount: number; hasLiked: boolean }>(`/posts/${raw.id}/likes`),
+            this.api.get<{ commentCount: number }>(`/posts/${raw.id}/comments/count`),
+          ]);
+          return transformPost(raw, likesRes.data, Number(countRes.data.commentCount));
+        } catch {
+          return transformPost(raw);
+        }
+      })
+    );
     return { ...response.data, content: posts };
   }
 
   async getMyPosts(): Promise<Post[]> {
     const response = await this.api.get<BackendPost[]>('/posts/my-posts');
-    return response.data.map((raw) => transformPost(raw));
+    const posts = await Promise.all(
+      response.data.map(async (raw) => {
+        try {
+          const [likesRes, countRes] = await Promise.all([
+            this.api.get<{ likeCount: number; hasLiked: boolean }>(`/posts/${raw.id}/likes`),
+            this.api.get<{ commentCount: number }>(`/posts/${raw.id}/comments/count`),
+          ]);
+          return transformPost(raw, likesRes.data, Number(countRes.data.commentCount));
+        } catch {
+          return transformPost(raw);
+        }
+      })
+    );
+    return posts;
   }
 
   // Following APIs
