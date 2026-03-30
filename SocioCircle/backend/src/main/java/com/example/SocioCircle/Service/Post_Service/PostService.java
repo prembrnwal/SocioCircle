@@ -78,6 +78,7 @@ public class PostService {
     }
 
     // UNLIKE POST
+    @org.springframework.transaction.annotation.Transactional
     public void unlikePost(Login_User user, Long postId) {
         Post post = postRepo.findById(postId).orElseThrow();
         likeRepo.deleteByPostAndUser(post, user);
