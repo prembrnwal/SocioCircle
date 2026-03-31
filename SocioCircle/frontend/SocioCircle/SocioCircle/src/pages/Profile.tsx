@@ -7,7 +7,7 @@ import {
 } from 'react-icons/io5';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-toastify';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { apiService } from '../services/api';
 import { useAuthStore } from '../stores/authStore';
@@ -86,6 +86,8 @@ export const Profile = () => {
   const [viewMode, setViewMode] = useState<'grid' | 'feed'>('grid');
   const [followModalType, setFollowModalType] = useState<'followers' | 'following' | null>(null);
   const [localLikes, setLocalLikes] = useState<Record<number, { count: number; liked: boolean }>>({});
+  const [isFollowHovered, setIsFollowHovered] = useState(false);
+  const [optimisticFollowing, setOptimisticFollowing] = useState<boolean | null>(null);
 
   const isOwnProfile = !email || email === currentUser?.email;
   const targetEmail = email || currentUser?.email;
@@ -117,17 +119,35 @@ export const Profile = () => {
     retry: false,
   });
 
+  // Sync optimistic state when server data arrives
+  useEffect(() => {
+    if (followStats) setOptimisticFollowing(null);
+  }, [followStats]);
+
+  const isFollowing = optimisticFollowing !== null ? optimisticFollowing : (followStats ?? MOCK_STATS).isFollowing;
+
   const followMutation = useMutation({
     mutationFn: async () => {
-      const stats = followStats ?? MOCK_STATS;
-      if (stats.isFollowing) return apiService.unfollowUser(targetEmail!);
-      else return apiService.followUser(targetEmail!);
+      const currentlyFollowing = isFollowing;
+      // Optimistic update before the request
+      setOptimisticFollowing(!currentlyFollowing);
+      if (currentlyFollowing) {
+        await apiService.unfollowUser(targetEmail!);
+        return { action: 'unfollowed' };
+      } else {
+        await apiService.followUser(targetEmail!);
+        return { action: 'followed' };
+      }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['followStats', targetEmail] });
-      toast.success((followStats ?? MOCK_STATS).isFollowing ? 'Unfollowed' : 'Following!');
+      toast.success(data.action === 'followed' ? '✓ Now following!' : 'Unfollowed');
     },
-    onError: () => toast.error('Failed to update follow status'),
+    onError: () => {
+      // Revert optimistic update on failure
+      setOptimisticFollowing(null);
+      toast.error('Failed to update follow status. Please try again.');
+    },
   });
 
   // Use real data if available, fall back to mock
@@ -216,13 +236,19 @@ export const Profile = () => {
                     <Button
                       onClick={() => followMutation.mutate()}
                       isLoading={followMutation.isPending}
+                      onMouseEnter={() => setIsFollowHovered(true)}
+                      onMouseLeave={() => setIsFollowHovered(false)}
                       className={`rounded-xl px-7 h-9 font-bold text-sm transition-all active:scale-95 ${
-                        displayStats.isFollowing
-                          ? 'bg-gray-100 dark:bg-white/10 text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-white/20'
+                        isFollowing
+                          ? isFollowHovered
+                            ? 'bg-red-50 dark:bg-red-500/10 text-red-500 border border-red-200 dark:border-red-500/30'
+                            : 'bg-gray-100 dark:bg-white/10 text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-white/20 border border-gray-200 dark:border-white/10'
                           : 'bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 text-white shadow-lg shadow-violet-500/25'
                       }`}
                     >
-                      {displayStats.isFollowing ? '✓ Following' : 'Follow'}
+                      {isFollowing
+                        ? isFollowHovered ? '✕ Unfollow' : '✓ Following'
+                        : 'Follow'}
                     </Button>
                   )}
                 </div>
@@ -494,6 +520,76 @@ const MOCK_FOLLOW_LIST = [
   { email: 'carol@example.com', name: 'Carol Davis', bio: 'Vocalist & songwriter 🎤' },
 ];
 
+/** Inline follow/unfollow button used inside the Follow List Modal */
+const ModalFollowButton = ({ targetEmail }: { targetEmail: string }) => {
+  const queryClient = useQueryClient();
+  const currentUser = useAuthStore((state) => state.user);
+  const isOwnEmail = targetEmail === currentUser?.email;
+
+  const { data: stats, isLoading: isLoadingStats } = useQuery({
+    queryKey: ['followStats', targetEmail],
+    queryFn: () => apiService.getFollowStats(targetEmail),
+    enabled: !isOwnEmail,
+    retry: false,
+  });
+
+  const [optimistic, setOptimistic] = useState<boolean | null>(null);
+  const [hovered, setHovered] = useState(false);
+
+  // Sync optimistic state when server data arrives
+  useEffect(() => {
+    if (stats) setOptimistic(null);
+  }, [stats]);
+
+  const isFollowing = optimistic !== null ? optimistic : (stats?.isFollowing ?? false);
+
+  const mutation = useMutation({
+    mutationFn: async () => {
+      const wasFollowing = isFollowing;
+      setOptimistic(!wasFollowing);
+      if (wasFollowing) {
+        await apiService.unfollowUser(targetEmail);
+        return { action: 'unfollowed' };
+      } else {
+        await apiService.followUser(targetEmail);
+        return { action: 'followed' };
+      }
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['followStats', targetEmail] });
+      toast.success(data.action === 'followed' ? '✓ Now following!' : 'Unfollowed');
+    },
+    onError: () => {
+      setOptimistic(null);
+      toast.error('Failed to update follow status.');
+    },
+  });
+
+  if (isOwnEmail || isLoadingStats) return null;
+
+  return (
+    <button
+      onClick={(e) => { e.stopPropagation(); mutation.mutate(); }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      disabled={mutation.isPending}
+      className={`h-8 text-xs font-bold rounded-xl px-3 shrink-0 border transition-all active:scale-95 ${
+        isFollowing
+          ? hovered
+            ? 'bg-red-50 dark:bg-red-500/10 text-red-500 border-red-200 dark:border-red-500/30'
+            : 'bg-gray-100 dark:bg-white/10 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-white/10'
+          : 'bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white border-transparent shadow shadow-violet-500/20'
+      }`}
+    >
+      {mutation.isPending
+        ? '…'
+        : isFollowing
+          ? hovered ? '✕ Unfollow' : '✓ Following'
+          : 'Follow'}
+    </button>
+  );
+};
+
 const FollowListModal = ({
   isOpen, onClose, type, userEmail,
 }: {
@@ -522,10 +618,10 @@ const FollowListModal = ({
             {displayList.map((u: any) => (
               <div
                 key={u.email}
-                className="flex items-center justify-between p-3 rounded-2xl hover:bg-gray-50 dark:hover:bg-[#1a1a1a] transition-colors cursor-pointer group"
+                className="flex items-center justify-between p-3 rounded-2xl hover:bg-gray-50 dark:hover:bg-[#1a1a1a] transition-colors group"
               >
                 <div
-                  className="flex items-center gap-3 flex-1 overflow-hidden"
+                  className="flex items-center gap-3 flex-1 overflow-hidden cursor-pointer"
                   onClick={() => { onClose(); navigate(ROUTES.PROFILE + '/' + u.email); }}
                 >
                   <Avatar src={u.profilePicture} alt={u.name} size="sm" />
@@ -536,13 +632,8 @@ const FollowListModal = ({
                     <p className="text-xs text-gray-500 truncate">{u.bio || u.email}</p>
                   </div>
                 </div>
-                <Button
-                  variant="outline"
-                  onClick={() => { onClose(); navigate(ROUTES.PROFILE + '/' + u.email); }}
-                  className="h-8 text-xs font-bold rounded-xl px-3 shrink-0"
-                >
-                  View
-                </Button>
+                {/* Inline follow/unfollow — replaces the plain "View" button */}
+                <ModalFollowButton targetEmail={u.email} />
               </div>
             ))}
           </div>
