@@ -38,9 +38,9 @@ public class FollowService {
         Login_User following = userRepo.findById(followingEmail)
                 .orElseThrow(() -> new RuntimeException("User not found"));
         
-        // Check if already following
+        // Idempotent: silently return if already following
         if (followRepo.existsByFollowerAndFollowing(follower, following)) {
-            throw new IllegalStateException("Already following this user");
+            return;
         }
         
         // Create follow relationship
@@ -57,10 +57,9 @@ public class FollowService {
         Login_User following = userRepo.findById(followingEmail)
                 .orElseThrow(() -> new RuntimeException("User not found"));
         
-        Follow follow = followRepo.findByFollowerAndFollowing(follower, following)
-                .orElseThrow(() -> new IllegalStateException("Not following this user"));
-        
-        followRepo.delete(follow);
+        // Idempotent: silently return if not following
+        followRepo.findByFollowerAndFollowing(follower, following)
+                .ifPresent(followRepo::delete);
     }
     
     /**
