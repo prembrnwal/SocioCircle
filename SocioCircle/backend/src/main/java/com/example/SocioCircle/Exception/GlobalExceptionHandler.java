@@ -27,6 +27,18 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error processing file upload: " + exc.getMessage());
     }
 
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<String> handleIllegalStateException(IllegalStateException exc) {
+        logger.warn("Conflict: {}", exc.getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(exc.getMessage());
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<String> handleIllegalArgumentException(IllegalArgumentException exc) {
+        logger.warn("Bad request: {}", exc.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(exc.getMessage());
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<String> handleException(Exception exc) {
         logger.error("Unexpected error occurred", exc);
