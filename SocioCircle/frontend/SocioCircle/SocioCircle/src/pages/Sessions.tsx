@@ -46,7 +46,11 @@ export const Sessions = () => {
   const createSessionMutation = useMutation({
     mutationFn: async (data: SessionFormData) => {
       if (!groupId) throw new Error('Group ID is missing');
-      const formattedStartTime = new Date(data.startTime).toISOString();
+      // Send local datetime as-is — backend uses LocalDateTime (timezone-unaware).
+      // Converting to UTC ISO would cause @Future validation to fail for IST users.
+      const formattedStartTime = data.startTime.length === 16
+        ? data.startTime + ':00'   // e.g. "2026-03-31T14:30" → "2026-03-31T14:30:00"
+        : data.startTime;
       return apiService.createSession(
         Number(groupId),
         data.title,
@@ -61,7 +65,14 @@ export const Sessions = () => {
       navigate(ROUTES.GROUP_DETAIL.replace(':groupId', groupId!));
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to schedule session');
+      const data = error.response?.data;
+      const msg =
+        (typeof data === 'object' && data?.message)
+          ? data.message
+          : typeof data === 'string' && data
+          ? data
+          : 'Failed to schedule session';
+      toast.error(msg);
     },
   });
 

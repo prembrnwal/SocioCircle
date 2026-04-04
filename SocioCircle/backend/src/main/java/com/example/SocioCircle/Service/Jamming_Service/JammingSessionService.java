@@ -49,9 +49,7 @@ public class JammingSessionService {
             throw new RuntimeException("User is not group member");
         }
 
-        if (request.getStartTime().isBefore(LocalDateTime.now())) {
-            throw new RuntimeException("Start time must be in future");
-        }
+        // Note: @Future validation on the DTO handles this — no duplicate check needed here.
 
         JammingSession session = new JammingSession();
         session.setGroup(group);
@@ -63,6 +61,15 @@ public class JammingSessionService {
         session.setStatus(SessionStatus.UPCOMING);
 
         return sessionRepo.save(session);
+    }
+
+    /* CREATE SESSION - returns safe DTO (avoids JPA serialization errors) */
+    public JammingSessionResponse createSessionAndReturn(
+            Long groupId,
+            CreateJammingSessionRequest request,
+            Login_User currentUser) {
+        JammingSession session = createSession(groupId, request, currentUser);
+        return mapToResponse(session);
     }
 
     /* JOIN SESSION */

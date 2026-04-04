@@ -4,7 +4,6 @@ import com.example.SocioCircle.DTO.Jamming_Dto.CreateJammingSessionRequest;
 import com.example.SocioCircle.DTO.Jamming_Dto.JammingSessionResponse;
 import com.example.SocioCircle.DTO.Jamming_Dto.ParticipantResponse;
 import com.example.SocioCircle.DTO.Pagging.TimeCursorPageResponse;
-import com.example.SocioCircle.Entity.Jamming_Entity.JammingSession;
 import com.example.SocioCircle.Entity.Login_User;
 import com.example.SocioCircle.Service.Jamming_Service.JammingSessionService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,11 +26,11 @@ public class JammingSessionController {
 
     // CREATE SESSION
     @PostMapping("/groups/{groupId}")
-    public ResponseEntity<JammingSession> create(
+    public ResponseEntity<JammingSessionResponse> create(
             @PathVariable Long groupId,
             @Valid @RequestBody CreateJammingSessionRequest request,
             @AuthenticationPrincipal Login_User user) {
-        return ResponseEntity.ok(service.createSession(groupId, request, user));
+        return ResponseEntity.ok(service.createSessionAndReturn(groupId, request, user));
     }
 
     // GET SESSIONS BY GROUP - Cursor-based pagination

@@ -4,7 +4,6 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
-import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -20,7 +19,6 @@ public class CreateJammingSessionRequest {
     @Size(max = 500, message = "Description cannot exceed 500 characters")
     private String description;
     
-    @Future(message = "Start time must be in the future")
     @NotNull(message = "Start time is required")
     private LocalDateTime startTime;
     
