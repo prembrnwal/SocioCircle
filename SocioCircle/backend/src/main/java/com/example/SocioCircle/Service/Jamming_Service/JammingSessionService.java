@@ -210,8 +210,8 @@ public class JammingSessionService {
         dto.setStartTime(session.getStartTime());
         dto.setDurationMinutes(session.getDurationMinutes());
         dto.setStatus(session.getStatus());
-        dto.setGroupId(session.getGroup().getId());
-        dto.setCreatedBy(session.getCreatedBy().getEmail());
+        dto.setGroupId(session.getGroup() != null ? session.getGroup().getId() : null);
+        dto.setCreatedBy(session.getCreatedBy() != null ? session.getCreatedBy().getEmail() : null);
         return dto;
     }
 
