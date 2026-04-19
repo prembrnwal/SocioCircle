@@ -20,7 +20,7 @@ public class InterestGroup {
 
         private String description;
 
-        @ManyToOne(fetch = FetchType.LAZY)
+        @ManyToOne(fetch = FetchType.EAGER)
         @JoinColumn(name = "created_by")
         private Login_User createdBy;
 

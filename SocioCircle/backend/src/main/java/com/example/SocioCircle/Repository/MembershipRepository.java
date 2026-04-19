@@ -11,9 +11,13 @@ import java.util.List;
 @Repository
 public interface MembershipRepository extends JpaRepository<Membership, Long> {
     boolean existsByUserAndGroup(Login_User user, InterestGroup group);
+    boolean existsByUserAndGroup_Id(Login_User user, Long groupId);
     void deleteByUserAndGroup(Login_User user, InterestGroup group);
+    void deleteByGroupAndUser_Email(InterestGroup group, String email);
     List<Membership> findByUser(Login_User user);
     List<Membership> findByGroup(InterestGroup group);
+    List<Membership> findByGroupOrderByJoinedAtAsc(InterestGroup group);
+    long countByGroup(InterestGroup group);
 }
 
 
