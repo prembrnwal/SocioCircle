@@ -14,8 +14,8 @@ import java.time.LocalDateTime;
 public class ChatMessageDTO {
     private Long id;
     private Long sessionId;
-    private String senderEmail;
-    private String senderName;
+    private String userEmail;
+    private String userName;
     private String content;
     private LocalDateTime timestamp;
 }
