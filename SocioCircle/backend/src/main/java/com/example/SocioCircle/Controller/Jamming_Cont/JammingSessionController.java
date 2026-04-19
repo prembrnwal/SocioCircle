@@ -16,6 +16,7 @@ import jakarta.validation.Valid;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/jamming-sessions")
@@ -46,18 +47,18 @@ public class JammingSessionController {
 
     // JOIN SESSION
     @PostMapping("/{id}/join")
-    public ResponseEntity<String> join(@PathVariable Long id,
+    public ResponseEntity<Map<String, String>> join(@PathVariable Long id,
                                         @AuthenticationPrincipal Login_User user) {
         service.joinSession(id, user);
-        return ResponseEntity.ok("Joined session successfully");
+        return ResponseEntity.ok(Map.of("message", "Joined session successfully"));
     }
 
     // LEAVE SESSION
     @PostMapping("/{id}/leave")
-    public ResponseEntity<String> leave(@PathVariable Long id,
+    public ResponseEntity<Map<String, String>> leave(@PathVariable Long id,
                                          @AuthenticationPrincipal Login_User user) {
         service.leaveSession(id, user);
-        return ResponseEntity.ok("Left session successfully");
+        return ResponseEntity.ok(Map.of("message", "Left session successfully"));
     }
 
     // GET PARTICIPANTS - Cursor-based pagination
