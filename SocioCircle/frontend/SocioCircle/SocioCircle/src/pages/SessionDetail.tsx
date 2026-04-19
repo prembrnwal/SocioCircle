@@ -1,14 +1,16 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useInfiniteQuery, useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
-import { IoArrowBack, IoPeopleOutline, IoPlayOutline, IoRadioOutline, IoPersonAddOutline } from 'react-icons/io5';
+import { IoArrowBack, IoPeopleOutline, IoPlayOutline, IoRadioOutline, IoPersonAddOutline, IoCalendarOutline, IoTimeOutline } from 'react-icons/io5';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-toastify';
 import { useState } from 'react';
+import { format } from 'date-fns';
 import { apiService } from '../services/api';
 import { Button } from '../components/common/Button';
 import { Spinner } from '../components/common/Loading';
 import { Avatar } from '../components/common/Avatar';
 import { Modal } from '../components/common/Modal';
+import { SessionStatusBadge } from '../components/common/Badge';
 import { ROUTES } from '../config/constants';
 import type { Participant } from '../types';
 
@@ -17,6 +19,19 @@ export const SessionDetail = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [selectedParticipant, setSelectedParticipant] = useState<Participant | null>(null);
+
+  // Load session details
+  const { data: session, isLoading: isLoadingSession } = useQuery({
+    queryKey: ['session', id],
+    queryFn: async () => {
+      try {
+        return await apiService.getSession(Number(id!));
+      } catch {
+        return null;
+      }
+    },
+    enabled: !!id,
+  });
 
   // Load participants using InfiniteQuery
   const {
@@ -38,12 +53,10 @@ export const SessionDetail = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sessionParticipants', id] });
-      // Navigate to actual live chat room
       navigate(ROUTES.CHAT.replace(':sessionId', id!));
     },
     onError: (error: any) => {
-      // If error is already joined or something, just navigate anyway
-      if (error?.response?.status === 400 && error.response.data?.message?.includes('already')) {
+      if (error?.response?.status === 400 && error.response.data?.message?.toLowerCase().includes('already')) {
         navigate(ROUTES.CHAT.replace(':sessionId', id!));
       } else {
         toast.error(error.response?.data?.message || 'Failed to join session');
@@ -77,6 +90,7 @@ export const SessionDetail = () => {
       animate={{ opacity: 1 }}
       className="min-h-screen bg-gray-50 dark:bg-[#0a0a0a] pb-24 md:pb-12"
     >
+      {/* ── Hero Banner ── */}
       <div className="relative h-64 sm:h-72 w-full overflow-hidden bg-gradient-to-tr from-violet-900 to-fuchsia-900 flex items-center justify-center">
         <div className="absolute inset-0 bg-black/30 mix-blend-multiply" />
         
@@ -92,15 +106,25 @@ export const SessionDetail = () => {
           className="absolute w-64 h-64 bg-violet-600 rounded-full blur-3xl opacity-40 mix-blend-screen pointer-events-none" 
         />
 
-        <div className="relative z-10 flex flex-col items-center">
+        <div className="relative z-10 flex flex-col items-center text-center px-4">
           <div className="w-20 h-20 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center mb-4 border border-white/20 shadow-xl shadow-fuchsia-500/20">
             <IoRadioOutline className="w-10 h-10 text-white animate-pulse" />
           </div>
-          <h2 className="text-white font-bold tracking-widest uppercase text-sm mb-2 drop-shadow-md">Live Audio Room</h2>
-          <div className="flex gap-1">
-            <span className="w-2 h-2 rounded-full bg-red-500 animate-[pulse_1s_ease-in-out_infinite] shadow-lg shadow-red-500" />
-            <span className="w-2 h-2 rounded-full bg-red-500 animate-[pulse_1s_ease-in-out_infinite] delay-100 shadow-lg shadow-red-500" />
-            <span className="w-2 h-2 rounded-full bg-red-500 animate-[pulse_1s_ease-in-out_infinite] delay-200 shadow-lg shadow-red-500" />
+          {session?.title && (
+            <h2 className="text-white font-extrabold text-2xl sm:text-3xl mb-2 drop-shadow-lg max-w-md leading-tight">
+              {session.title}
+            </h2>
+          )}
+          <div className="flex items-center gap-2">
+            {session?.status ? (
+              <SessionStatusBadge status={session.status as 'LIVE' | 'UPCOMING' | 'ENDED'} />
+            ) : (
+              <div className="flex gap-1">
+                <span className="w-2 h-2 rounded-full bg-red-500 animate-[pulse_1s_ease-in-out_infinite] shadow-lg shadow-red-500" />
+                <span className="w-2 h-2 rounded-full bg-red-500 animate-[pulse_1s_ease-in-out_infinite] delay-100 shadow-lg shadow-red-500" />
+                <span className="w-2 h-2 rounded-full bg-red-500 animate-[pulse_1s_ease-in-out_infinite] delay-200 shadow-lg shadow-red-500" />
+              </div>
+            )}
           </div>
         </div>
         
@@ -113,13 +137,42 @@ export const SessionDetail = () => {
       </div>
 
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 -mt-10 relative z-10">
-        <div className="bg-white dark:bg-[#121212] border border-gray-100 dark:border-white/5 rounded-3xl p-6 sm:p-8 shadow-2xl backdrop-blur-xl mb-8 flex flex-col items-center text-center">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2 tracking-tight">
-            Jam Session Waiting Room
+        {/* ── Session Info Card ── */}
+        <motion.div
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          className="bg-white dark:bg-[#121212] border border-gray-100 dark:border-white/5 rounded-3xl p-6 sm:p-8 shadow-2xl backdrop-blur-xl mb-8 flex flex-col items-center text-center"
+        >
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2 tracking-tight">
+            {isLoadingSession ? 'Loading...' : (session?.title || 'Jam Session Waiting Room')}
           </h1>
-          <p className="text-gray-500 dark:text-gray-400 mb-8 max-w-sm">
-            You're about to enter the live chat. Grab your instrument setup, test your mic, and jump right in!
-          </p>
+          
+          {session?.description && (
+            <p className="text-gray-500 dark:text-gray-400 mb-4 max-w-sm leading-relaxed">
+              {session.description}
+            </p>
+          )}
+
+          {session?.startTime && (
+            <div className="flex flex-wrap items-center justify-center gap-4 mb-6 text-sm text-gray-600 dark:text-gray-300 font-medium">
+              <div className="flex items-center gap-1.5">
+                <IoCalendarOutline className="w-4 h-4 text-violet-500" />
+                <span>{format(new Date(session.startTime), 'EEE, MMM d • h:mm a')}</span>
+              </div>
+              {session.durationMinutes && (
+                <div className="flex items-center gap-1.5">
+                  <IoTimeOutline className="w-4 h-4 text-violet-500" />
+                  <span>{session.durationMinutes} min jam</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {!session?.description && !session?.startTime && (
+            <p className="text-gray-500 dark:text-gray-400 mb-6 max-w-sm">
+              You're about to enter the live chat. Grab your instrument setup, test your mic, and jump right in!
+            </p>
+          )}
           
           <Button 
             onClick={() => joinSessionMutation.mutate()}
@@ -129,9 +182,10 @@ export const SessionDetail = () => {
             <IoPlayOutline className="w-6 h-6 mr-2" />
             Join Live Session
           </Button>
-        </div>
+        </motion.div>
 
-        <div>
+        {/* ── Participants ── */}
+        <div className="mb-8">
           <div className="flex items-center justify-between mb-6 px-2">
             <div className="flex items-center gap-2">
               <IoPeopleOutline className="w-6 h-6 text-violet-500" />
@@ -161,18 +215,18 @@ export const SessionDetail = () => {
                   animate={{ opacity: 1, scale: 1 }}
                   whileHover={{ y: -4, scale: 1.02 }}
                   transition={{ delay: i * 0.05, type: "spring", stiffness: 300, damping: 20 }}
-                  key={participant.id}
+                  key={participant.id || participant.userEmail || i}
                   onClick={() => setSelectedParticipant(participant)}
-                  className="flex items-center gap-4 bg-white dark:bg-[#1a1a1a] p-4 rounded-3xl border border-gray-100 dark:border-white/5 shadow-md shadow-gray-100/50 dark:shadow-none hover:border-violet-500/50 cursor-pointer overflow-hidden group"
+                  className="relative flex items-center gap-4 bg-white dark:bg-[#1a1a1a] p-4 rounded-3xl border border-gray-100 dark:border-white/5 shadow-md shadow-gray-100/50 dark:shadow-none hover:border-violet-500/50 cursor-pointer overflow-hidden group"
                 >
                   <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-br from-violet-500/10 to-fuchsia-500/10 rounded-bl-full -mr-8 -mt-8 transition-transform group-hover:scale-150" />
                   <div className="relative">
-                    <Avatar src={participant.userProfilePicture} alt={participant.userName} size="md" className="ring-2 ring-gray-50 dark:ring-[#121212]" />
+                    <Avatar src={participant.userProfilePicture} alt={participant.userName || 'Unknown'} size="md" className="ring-2 ring-gray-50 dark:ring-[#121212]" />
                     <span className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 border-2 border-white dark:border-[#1a1a1a] rounded-full shadow-sm" />
                   </div>
                   <div className="flex-1 min-w-0 z-10">
                     <p className="text-sm font-bold text-gray-900 dark:text-white truncate group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors">
-                      {participant.userName}
+                      {participant.userName || 'Unknown User'}
                     </p>
                     <p className="text-xs text-gray-500 dark:text-gray-400 truncate font-medium">
                       Joined Room

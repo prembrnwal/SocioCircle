@@ -13,6 +13,7 @@ import type {
   TimeCursorPageResponse,
   FollowStats,
   InterestGroup,
+  GroupMember,
   JammingSession,
   Participant,
   ChatMessage,
@@ -395,6 +396,26 @@ class ApiService {
     return response.data;
   }
 
+  async deleteGroup(groupId: number): Promise<{ message: string }> {
+    const response = await this.api.delete<{ message: string }>(`/groups/${groupId}`);
+    return response.data;
+  }
+
+  async checkGroupMembership(groupId: number): Promise<boolean> {
+    const response = await this.api.get<boolean>(`/groups/${groupId}/is-member`);
+    return response.data;
+  }
+
+  async getGroupMembers(groupId: number): Promise<GroupMember[]> {
+    const response = await this.api.get<GroupMember[]>(`/groups/${groupId}/members`);
+    return response.data;
+  }
+
+  async kickMember(groupId: number, memberEmail: string): Promise<{ message: string }> {
+    const response = await this.api.delete<{ message: string }>(`/groups/${groupId}/members/${encodeURIComponent(memberEmail)}`);
+    return response.data;
+  }
+
   // Jamming Sessions APIs (backend: /api/jamming-sessions)
   async getGroupSessions(
     groupId: number,
@@ -423,6 +444,11 @@ class ApiService {
       startTime,
       durationMinutes,
     });
+    return response.data;
+  }
+
+  async getSession(sessionId: number): Promise<JammingSession> {
+    const response = await this.api.get<JammingSession>(`/jamming-sessions/${sessionId}`);
     return response.data;
   }
 
