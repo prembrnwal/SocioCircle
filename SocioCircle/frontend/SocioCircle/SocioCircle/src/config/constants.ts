@@ -21,6 +21,8 @@ export const ROUTES = {
   SESSIONS: '/sessions',
   SESSION_DETAIL: '/sessions/:id',
   CHAT: '/chat/:sessionId',
+  NOTIFICATIONS: '/notifications',
+  SETTINGS: '/settings',
   FOLLOWERS: '/profile/:email/followers',
   FOLLOWING: '/profile/:email/following',
 } as const;

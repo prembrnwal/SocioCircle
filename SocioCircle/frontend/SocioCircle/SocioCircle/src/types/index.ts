@@ -96,7 +96,21 @@ export interface InterestGroup {
   name: string;
   description: string;
   memberCount?: number;
+  isMember?: boolean;
   createdAt?: string;
+  createdBy?: {
+    email: string;
+    name: string;
+  };
+}
+
+export interface GroupMember {
+  email: string;
+  name: string;
+  bio?: string;
+  interests?: string;
+  profilePicture?: string;
+  joinedAt: string;
 }
 
 // Jamming Session Types

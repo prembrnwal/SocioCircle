@@ -1,36 +1,147 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --color-primary: 139 92 246; /* violet-500 */
+    --color-accent: 217 70 239;  /* fuchsia-500 */
+  }
+
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
   body {
     @apply bg-white dark:bg-black text-gray-900 dark:text-white;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-      'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-      sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+      'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  }
+
+  /* ── Custom Scrollbar ── */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-gray-300 dark:bg-white/10 rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-gray-400 dark:bg-white/20;
+  }
+
+  /* ── Selection Color ── */
+  ::selection {
+    @apply bg-violet-500/30 text-violet-900 dark:text-white;
+  }
+
+  /* ── Focus Visible Outline ── */
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-violet-500;
   }
 }
 
 @layer components {
   .btn-primary {
-    @apply bg-primary text-white rounded-lg px-6 py-3 font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply bg-violet-600 text-white rounded-xl px-6 py-3 font-semibold hover:bg-violet-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98];
   }
   
   .btn-secondary {
-    @apply bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-white rounded-lg px-6 py-3 font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply bg-gray-100 dark:bg-white/10 text-gray-900 dark:text-white rounded-xl px-6 py-3 font-semibold hover:bg-gray-200 dark:hover:bg-white/20 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed;
   }
   
   .btn-outline {
-    @apply border-2 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white rounded-lg px-6 py-3 font-semibold hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white rounded-xl px-6 py-3 font-semibold hover:bg-gray-50 dark:hover:bg-white/5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed;
   }
   
   .input-field {
-    @apply w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent;
+    @apply w-full rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-gray-900 dark:text-white px-4 py-3 focus:outline-none focus:ring-2 focus:ring-violet-500/50 focus:border-violet-500 focus:bg-white dark:focus:bg-[#1a1a1a] transition-all placeholder:text-gray-400 dark:placeholder:text-gray-500;
   }
   
   .card {
-    @apply bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-200 dark:border-gray-800;
+    @apply bg-white dark:bg-[#121212] rounded-3xl shadow-sm border border-gray-100 dark:border-white/5;
+  }
+
+  .card-hover {
+    @apply card hover:shadow-lg hover:shadow-violet-500/5 hover:-translate-y-0.5 transition-all duration-300;
+  }
+
+  /* ── Glassmorphism Panel ── */
+  .glass {
+    @apply bg-white/70 dark:bg-[#121212]/70 backdrop-blur-xl border border-gray-200 dark:border-white/5;
+  }
+
+  /* ── Gradient Text ── */
+  .gradient-text {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-violet-600 to-fuchsia-500;
+  }
+
+  /* ── Section heading ── */
+  .section-label {
+    @apply text-xs font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500;
+  }
+
+  /* ── Skeleton shimmer ── */
+  .skeleton {
+    @apply bg-gray-200 dark:bg-white/5 rounded-xl relative overflow-hidden;
+  }
+
+  .skeleton::after {
+    content: '';
+    @apply absolute inset-0;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
+    animation: shimmer 1.6s infinite;
+  }
+
+  @keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+  }
+}
+
+@layer utilities {
+  /* ── Safe area insets for mobile ── */
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .pt-safe {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+
+  /* ── Scrollbar hide ── */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* ── Text balance ── */
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  /* ── No tap highlight ── */
+  .no-tap {
+    -webkit-tap-highlight-color: transparent;
+    tap-highlight-color: transparent;
   }
 }
