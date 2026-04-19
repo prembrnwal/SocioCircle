@@ -34,3 +34,11 @@ build/
 
 WEBSOCKET_IMPLEMENTATION_GUIDE.md
 FEATURES_STATUS.md
+
+### Uploads — user-generated files should never be committed ###
+backend/uploads/
+backend/uploads/profile-pictures/
+
+### JVM crash & replay dumps ###
+hs_err_pid*.log
+replay_pid*.log
