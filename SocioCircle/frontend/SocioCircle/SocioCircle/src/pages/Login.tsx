@@ -5,6 +5,15 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'react-toastify';
 import { motion } from 'framer-motion';
+import { 
+  IoMailOutline, 
+  IoLockClosedOutline, 
+  IoEyeOutline, 
+  IoEyeOffOutline, 
+  IoLogoFacebook,
+  IoAperture
+} from 'react-icons/io5';
+import { FcGoogle } from 'react-icons/fc';
 import { Button, Input } from '../components/common';
 import { apiService } from '../services/api';
 import { useAuthStore } from '../stores/authStore';
@@ -57,70 +66,113 @@ export const Login = () => {
         transition={{ duration: 0.5, ease: "easeOut" }}
         className="relative z-10 w-full max-w-sm"
       >
-        <div className="backdrop-blur-xl bg-white/60 dark:bg-white/[0.03] border border-gray-200 dark:border-white/10 rounded-3xl p-8 shadow-2xl">
-          <div className="text-center mb-8">
-            <motion.h1
-              initial={{ scale: 0.95 }}
-              animate={{ scale: 1 }}
-              transition={{ type: "spring", stiffness: 300, damping: 20 }}
-              className="text-4xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-violet-600 to-fuchsia-500 mb-2"
-            >
-              Jamming
-            </motion.h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">
-              Log in to join the community
+        <div className="bg-white dark:bg-[#111] border border-gray-100 dark:border-white/5 rounded-3xl p-8 sm:p-10 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.1)] dark:shadow-[0_20px_50px_-12px_rgba(0,0,0,0.5)]">
+          {/* Logo & Header */}
+          <div className="flex flex-col items-center mb-8">
+            <div className="flex items-center justify-center gap-2 mb-6">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-violet-600 to-fuchsia-500 flex items-center justify-center text-white shadow-lg shadow-violet-500/30">
+                <IoAperture className="w-5 h-5" />
+              </div>
+              <span className="text-xl font-bold text-gray-900 dark:text-white tracking-tight">SocioCircle</span>
+            </div>
+            
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2 text-center">
+              Log in to your Account
+            </h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400 text-center">
+              Welcome back! Select method to log in:
             </p>
           </div>
 
+          {/* Social Logins */}
+          <div className="flex gap-4 mb-6">
+            <button type="button" className="flex-1 flex items-center justify-center gap-2 h-11 px-4 border border-gray-200 dark:border-white/10 rounded-xl bg-white dark:bg-white/5 hover:bg-gray-50 dark:hover:bg-white/10 transition-colors text-sm font-semibold text-gray-700 dark:text-gray-200">
+              <FcGoogle className="w-5 h-5" />
+              Google
+            </button>
+            <button type="button" className="flex-1 flex items-center justify-center gap-2 h-11 px-4 border border-gray-200 dark:border-white/10 rounded-xl bg-white dark:bg-white/5 hover:bg-gray-50 dark:hover:bg-white/10 transition-colors text-sm font-semibold text-gray-700 dark:text-gray-200">
+              <IoLogoFacebook className="w-5 h-5 text-blue-600 dark:text-blue-500" />
+              Facebook
+            </button>
+          </div>
+
+          {/* Divider */}
+          <div className="flex items-center gap-3 mb-6">
+            <div className="h-px bg-gray-200 dark:bg-white/10 flex-1" />
+            <span className="text-xs font-medium text-gray-400 dark:text-gray-500">or continue with email</span>
+            <div className="h-px bg-gray-200 dark:bg-white/10 flex-1" />
+          </div>
+
+          {/* Form */}
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            <Input
-              type="text"
-              placeholder="Email or Username"
-              {...register('userId')}
-              error={errors.userId?.message}
-              className="bg-gray-100 dark:bg-white/5 border-transparent focus:bg-white dark:focus:bg-[#121212] transition-colors"
-            />
+            <div className="relative">
+              <div className="absolute left-4 top-[14px] text-gray-400 z-10 pointer-events-none">
+                <IoMailOutline className="w-5 h-5" />
+              </div>
+              <Input
+                type="text"
+                placeholder="Email"
+                {...register('userId')}
+                error={errors.userId?.message}
+                className="bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-transparent focus:bg-white dark:focus:bg-[#121212] transition-all pl-11 rounded-xl h-12"
+              />
+            </div>
 
             <div className="relative">
+              <div className="absolute left-4 top-[14px] text-gray-400 z-10 pointer-events-none">
+                <IoLockClosedOutline className="w-5 h-5" />
+              </div>
               <Input
                 type={showPassword ? 'text' : 'password'}
                 placeholder="Password"
                 {...register('password')}
                 error={errors.password?.message}
-                className="bg-gray-100 dark:bg-white/5 border-transparent focus:bg-white dark:focus:bg-[#121212] transition-colors pr-12"
+                className="bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-transparent focus:bg-white dark:focus:bg-[#121212] transition-all pl-11 pr-12 rounded-xl h-12"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-3 text-xs font-semibold text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors"
+                className="absolute right-4 top-[14px] text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors z-10"
               >
-                {showPassword ? 'Hide' : 'Show'}
+                {showPassword ? <IoEyeOffOutline className="w-5 h-5" /> : <IoEyeOutline className="w-5 h-5" />}
               </button>
+            </div>
+
+            <div className="flex items-center justify-between pt-1 pb-4">
+              <label className="flex items-center gap-2 cursor-pointer group">
+                <div className="relative flex items-center justify-center w-4 h-4 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 group-hover:border-violet-500 transition-colors">
+                  <input type="checkbox" className="peer sr-only" />
+                  <svg className="w-3 h-3 text-white peer-checked:text-violet-500 pointer-events-none opacity-0 peer-checked:opacity-100 transition-opacity" viewBox="0 0 14 14" fill="none">
+                    <path d="M3 8L6 11L11 3.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </div>
+                <span className="text-sm font-medium text-gray-600 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-gray-200 transition-colors">
+                  Remember me
+                </span>
+              </label>
+              <a href="#" className="text-sm font-semibold text-violet-600 dark:text-violet-400 hover:text-violet-500 transition-colors">
+                Forgot Password?
+              </a>
             </div>
 
             <Button
               type="submit"
               isLoading={isLoading}
-              className="w-full h-11 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-500 hover:from-violet-500 hover:to-fuchsia-400 text-white font-semibold shadow-lg shadow-violet-500/25 transition-all active:scale-[0.98]"
+              className="w-full h-12 rounded-xl bg-violet-600 hover:bg-violet-700 text-white font-semibold shadow-lg shadow-violet-500/25 transition-all active:scale-[0.98]"
             >
               Log in
             </Button>
           </form>
 
-          <div className="mt-6 flex items-center justify-center space-x-2 text-sm text-gray-500 dark:text-gray-400">
-            <div className="h-px bg-gray-200 dark:bg-white/10 flex-1" />
-            <span className="font-medium">OR</span>
-            <div className="h-px bg-gray-200 dark:bg-white/10 flex-1" />
-          </div>
-
-          <div className="mt-6 text-center">
+          <p className="mt-8 text-center text-sm font-medium text-gray-500 dark:text-gray-400">
+            Don't have an account?{' '}
             <Link
               to={ROUTES.REGISTER}
-              className="text-sm font-semibold text-violet-600 dark:text-violet-400 hover:text-violet-500 transition-colors"
+              className="font-semibold text-violet-600 dark:text-violet-400 hover:text-violet-500 transition-colors"
             >
-              Can't sign in? Create an account.
+              Create an account
             </Link>
-          </div>
+          </p>
         </div>
       </motion.div>
     </div>

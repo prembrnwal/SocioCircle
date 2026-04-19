@@ -13,7 +13,7 @@ import { apiService } from '../services/api';
 import { useAuthStore } from '../stores/authStore';
 import { Avatar } from '../components/common/Avatar';
 import { Button } from '../components/common/Button';
-import { Spinner } from '../components/common/Loading';
+import { Spinner, ProfileSkeleton } from '../components/common/Loading';
 import { Modal } from '../components/common/Modal';
 import { ROUTES } from '../config/constants';
 import type { UserInfo, FollowStats, Post } from '../types';
@@ -88,14 +88,16 @@ export const Profile = () => {
   const [localLikes, setLocalLikes] = useState<Record<number, { count: number; liked: boolean }>>({});
   const [isFollowHovered, setIsFollowHovered] = useState(false);
   const [optimisticFollowing, setOptimisticFollowing] = useState<boolean | null>(null);
+  const [showPhotoViewer, setShowPhotoViewer] = useState(false);
 
   const isOwnProfile = !email || email === currentUser?.email;
   const targetEmail = email || currentUser?.email;
 
-  // User query with mock fallback
+  // Always fetch by email so cache keys are distinct per user.
+  // For own profile, use currentUser.email from the auth store.
   const { data: user, isLoading: isLoadingUser } = useQuery({
     queryKey: ['user', targetEmail],
-    queryFn: () => (isOwnProfile ? apiService.getCurrentUser() : apiService.getUserByEmail(targetEmail!)),
+    queryFn: () => apiService.getUserByEmail(targetEmail!),
     enabled: !!targetEmail,
     retry: false,
     staleTime: 0,
@@ -117,6 +119,7 @@ export const Profile = () => {
     getNextPageParam: (lastPage: any) => lastPage.nextCursor,
     initialPageParam: undefined as number | undefined,
     retry: false,
+    staleTime: 0,
   });
 
   // Sync optimistic state when server data arrives
@@ -150,8 +153,8 @@ export const Profile = () => {
     },
   });
 
-  // Use real data if available, fall back to mock
-  const displayUser = user ?? (isOwnProfile ? currentUser : null) ?? MOCK_USER;
+  // Use real data only — never bleed another user's data as fallback
+  const displayUser = user ?? MOCK_USER;
   const displayStats = followStats ?? MOCK_STATS;
   const rawPosts = postsData?.pages.flatMap((page: any) => page.content) ?? [];
   const displayPosts = rawPosts.length > 0 ? rawPosts : (isOwnProfile ? MOCK_POSTS : []);
@@ -166,9 +169,11 @@ export const Profile = () => {
 
   if (isLoadingUser || isLoadingStats) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <Spinner size="lg" className="text-violet-500" />
-      </div>
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="min-h-screen bg-gray-50 dark:bg-[#0a0a0a] pb-28 md:pb-12">
+        <div className="max-w-4xl mx-auto px-0 sm:px-4 py-0 sm:py-8">
+          <ProfileSkeleton />
+        </div>
+      </motion.div>
     );
   }
 
@@ -197,14 +202,27 @@ export const Profile = () => {
           {/* Avatar + Actions row */}
           <div className="px-5 sm:px-8 pb-6 relative -mt-16 sm:-mt-20">
             <div className="flex flex-col sm:flex-row sm:items-end gap-4 mb-5">
-              {/* Avatar */}
-              <div className="relative inline-block w-28 h-28 sm:w-36 sm:h-36 rounded-full border-4 border-white dark:border-[#121212] shadow-xl overflow-hidden shrink-0">
+              {/* Avatar — tap to view full image */}
+              <div
+                className={`relative inline-block w-28 h-28 sm:w-36 sm:h-36 rounded-full border-4 border-white dark:border-[#121212] shadow-xl overflow-hidden shrink-0 ${
+                  displayUser.profilePicture ? 'cursor-pointer group' : ''
+                }`}
+                onClick={() => displayUser.profilePicture && setShowPhotoViewer(true)}
+                title={displayUser.profilePicture ? 'View photo' : undefined}
+              >
                 <Avatar
                   src={displayUser.profilePicture}
                   alt={displayUser.name}
                   size="xl"
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                 />
+                {displayUser.profilePicture && (
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/25 transition-colors rounded-full flex items-center justify-center">
+                    <svg className="w-7 h-7 text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-lg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
+                    </svg>
+                  </div>
+                )}
               </div>
 
               {/* Name + action buttons */}
@@ -502,6 +520,65 @@ export const Profile = () => {
           </AnimatePresence>
         </div>
       </div>
+
+      {/* ── Full-screen Photo Viewer ── */}
+      <AnimatePresence>
+        {showPhotoViewer && displayUser.profilePicture && (
+          <motion.div
+            key="photo-viewer"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-xl"
+            onClick={() => setShowPhotoViewer(false)}
+            onKeyDown={(e) => e.key === 'Escape' && setShowPhotoViewer(false)}
+            tabIndex={0}
+            role="dialog"
+            aria-label="Profile photo viewer"
+            ref={(el) => el?.focus()}
+          >
+            {/* Close button */}
+            <button
+              onClick={() => setShowPhotoViewer(false)}
+              className="absolute top-6 right-6 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors z-10"
+              aria-label="Close"
+            >
+              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+
+            {/* Photo container */}
+            <motion.div
+              initial={{ scale: 0.85, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.85, opacity: 0 }}
+              transition={{ duration: 0.25, ease: [0.25, 0.4, 0.25, 1] }}
+              className="flex flex-col items-center gap-4"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <img
+                src={
+                  (() => {
+                    const s = displayUser.profilePicture || '';
+                    if (s.startsWith('http') || s.startsWith('data:')) return s;
+                    if (s.startsWith('/uploads/') || s.startsWith('uploads/')) {
+                      return `http://localhost:9090${s.startsWith('/') ? s : '/' + s}`;
+                    }
+                    return s;
+                  })()
+                }
+                alt={displayUser.name}
+                className="max-w-[90vw] max-h-[75vh] rounded-3xl shadow-2xl object-contain border-2 border-white/10"
+              />
+              <p className="text-white/80 text-sm font-semibold tracking-wide">
+                {displayUser.name}
+              </p>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <FollowListModal
         isOpen={!!followModalType}

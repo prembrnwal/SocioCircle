@@ -5,6 +5,14 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'react-toastify';
 import { motion } from 'framer-motion';
+import {
+  IoPersonOutline,
+  IoMailOutline,
+  IoLockClosedOutline,
+  IoEyeOutline,
+  IoEyeOffOutline,
+  IoAperture,
+} from 'react-icons/io5';
 import { Button, Input } from '../components/common';
 import { apiService } from '../services/api';
 import { useAuthStore } from '../stores/authStore';
@@ -26,6 +34,8 @@ const registerSchema = z
 
 type RegisterFormData = z.infer<typeof registerSchema>;
 
+const inputBase = 'bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-transparent focus:bg-white dark:focus:bg-[#121212] transition-all pl-11 rounded-xl h-12';
+
 export const Register = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -46,14 +56,14 @@ export const Register = () => {
     try {
       const { confirmPassword, ...registerData } = data;
       await apiService.register(registerData);
-      
+
       const loginResponse = await apiService.login({
         userId: data.email,
         password: data.password,
       });
-      
+
       setAuth(loginResponse.token, loginResponse.user);
-      toast.success('Account created successfully!');
+      toast.success('Welcome to SocioCircle! 🎵');
       navigate(ROUTES.FEED);
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Registration failed. Please try again.');
@@ -64,101 +74,126 @@ export const Register = () => {
 
   return (
     <div className="relative min-h-screen flex items-center justify-center bg-gray-50 dark:bg-[#0a0a0a] overflow-hidden py-10 px-4">
-      {/* Dynamic Background Elements */}
+      {/* ── Background blobs ── */}
       <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] bg-violet-600/20 blur-[120px] rounded-full mix-blend-screen pointer-events-none" />
       <div className="absolute bottom-[-10%] left-[-10%] w-[40%] h-[40%] bg-fuchsia-600/20 blur-[120px] rounded-full mix-blend-screen pointer-events-none" />
 
-      <motion.div 
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.4, ease: "easeOut" }}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: 'easeOut' }}
         className="relative z-10 w-full max-w-sm"
       >
-        <div className="backdrop-blur-xl bg-white/60 dark:bg-white/[0.03] border border-gray-200 dark:border-white/10 rounded-3xl p-8 shadow-2xl">
-          <div className="text-center mb-8">
-            <motion.h1 
-              initial={{ y: -10, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.1, type: "spring" }}
-              className="text-4xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-violet-600 to-fuchsia-500 mb-2"
-            >
-              Sign Up
-            </motion.h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">
-              Join the ultimate Jamming Community
+        <div className="bg-white dark:bg-[#111] border border-gray-100 dark:border-white/5 rounded-3xl p-8 sm:p-10 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.1)] dark:shadow-[0_20px_50px_-12px_rgba(0,0,0,0.5)]">
+
+          {/* ── Logo & header ── */}
+          <div className="flex flex-col items-center mb-8">
+            <div className="flex items-center justify-center gap-2 mb-6">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-violet-600 to-fuchsia-500 flex items-center justify-center text-white shadow-lg shadow-violet-500/30">
+                <IoAperture className="w-5 h-5" />
+              </div>
+              <span className="text-xl font-bold text-gray-900 dark:text-white tracking-tight">SocioCircle</span>
+            </div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2 text-center">
+              Create your account
+            </h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400 text-center">
+              Join the ultimate jamming community 🎵
             </p>
           </div>
 
+          {/* ── Form ── */}
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            <Input
-              type="text"
-              placeholder="Full Name"
-              {...register('name')}
-              error={errors.name?.message}
-              className="bg-gray-100 dark:bg-white/5 border-transparent focus:bg-white dark:focus:bg-[#121212] transition-colors"
-            />
-
-            <Input
-              type="email"
-              placeholder="Email address"
-              {...register('email')}
-              error={errors.email?.message}
-              className="bg-gray-100 dark:bg-white/5 border-transparent focus:bg-white dark:focus:bg-[#121212] transition-colors"
-            />
-
+            {/* Name */}
             <div className="relative">
+              <div className="absolute left-4 top-[14px] text-gray-400 z-10 pointer-events-none">
+                <IoPersonOutline className="w-5 h-5" />
+              </div>
+              <Input
+                type="text"
+                placeholder="Full Name"
+                {...register('name')}
+                error={errors.name?.message}
+                className={inputBase}
+              />
+            </div>
+
+            {/* Email */}
+            <div className="relative">
+              <div className="absolute left-4 top-[14px] text-gray-400 z-10 pointer-events-none">
+                <IoMailOutline className="w-5 h-5" />
+              </div>
+              <Input
+                type="email"
+                placeholder="Email address"
+                {...register('email')}
+                error={errors.email?.message}
+                className={inputBase}
+              />
+            </div>
+
+            {/* Password */}
+            <div className="relative">
+              <div className="absolute left-4 top-[14px] text-gray-400 z-10 pointer-events-none">
+                <IoLockClosedOutline className="w-5 h-5" />
+              </div>
               <Input
                 type={showPassword ? 'text' : 'password'}
                 placeholder="Password"
                 {...register('password')}
                 error={errors.password?.message}
-                className="bg-gray-100 dark:bg-white/5 border-transparent focus:bg-white dark:focus:bg-[#121212] transition-colors pr-12"
+                className={`${inputBase} pr-12`}
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-3 text-xs font-semibold text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors"
+                className="absolute right-4 top-[14px] text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors z-10"
               >
-                {showPassword ? 'Hide' : 'Show'}
+                {showPassword ? <IoEyeOffOutline className="w-5 h-5" /> : <IoEyeOutline className="w-5 h-5" />}
               </button>
             </div>
 
+            {/* Confirm Password */}
             <div className="relative">
+              <div className="absolute left-4 top-[14px] text-gray-400 z-10 pointer-events-none">
+                <IoLockClosedOutline className="w-5 h-5" />
+              </div>
               <Input
                 type={showConfirmPassword ? 'text' : 'password'}
-                placeholder="Confirm password"
+                placeholder="Confirm Password"
                 {...register('confirmPassword')}
                 error={errors.confirmPassword?.message}
-                className="bg-gray-100 dark:bg-white/5 border-transparent focus:bg-white dark:focus:bg-[#121212] transition-colors pr-12"
+                className={`${inputBase} pr-12`}
               />
               <button
                 type="button"
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                className="absolute right-3 top-3 text-xs font-semibold text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors"
+                className="absolute right-4 top-[14px] text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors z-10"
               >
-                {showConfirmPassword ? 'Hide' : 'Show'}
+                {showConfirmPassword ? <IoEyeOffOutline className="w-5 h-5" /> : <IoEyeOutline className="w-5 h-5" />}
               </button>
             </div>
 
             <div className="pt-2">
-              <Button 
-                type="submit" 
-                isLoading={isLoading} 
-                className="w-full h-11 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-500 hover:from-violet-500 hover:to-fuchsia-400 text-white font-semibold shadow-lg shadow-violet-500/25 transition-all active:scale-[0.98]"
+              <Button
+                type="submit"
+                isLoading={isLoading}
+                className="w-full h-12 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-500 hover:from-violet-500 hover:to-fuchsia-400 text-white font-semibold shadow-lg shadow-violet-500/25 transition-all active:scale-[0.98]"
               >
                 Create Account
               </Button>
             </div>
           </form>
 
-          <div className="mt-6 text-center">
-            <Link 
+          <p className="mt-8 text-center text-sm font-medium text-gray-500 dark:text-gray-400">
+            Already have an account?{' '}
+            <Link
               to={ROUTES.LOGIN}
-              className="text-sm font-semibold text-violet-600 dark:text-violet-400 hover:text-violet-500 transition-colors"
+              className="font-semibold text-violet-600 dark:text-violet-400 hover:text-violet-500 transition-colors"
             >
-              Already have an account? Log in.
+              Log in
             </Link>
-          </div>
+          </p>
         </div>
       </motion.div>
     </div>
