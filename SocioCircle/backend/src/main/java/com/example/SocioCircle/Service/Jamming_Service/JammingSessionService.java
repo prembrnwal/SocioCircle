@@ -42,11 +42,15 @@ public class JammingSessionService {
             CreateJammingSessionRequest request,
             Login_User currentUser) {
 
+        if (currentUser == null) {
+            throw new RuntimeException("Unauthorized: User not authenticated");
+        }
+
         InterestGroup group = groupRepo.findById(groupId)
                 .orElseThrow(() -> new RuntimeException("Group not found"));
 
-        if (!membershipRepo.existsByUserAndGroup(currentUser, group)) {
-            throw new RuntimeException("User is not group member");
+        if (!group.getCreatedBy().getEmail().equals(currentUser.getEmail())) {
+            throw new RuntimeException("Only the group creator can schedule a session");
         }
 
         // Note: @Future validation on the DTO handles this — no duplicate check needed here.
@@ -75,8 +79,16 @@ public class JammingSessionService {
     /* JOIN SESSION */
     public void joinSession(Long sessionId, Login_User user) {
 
+        if (user == null) {
+            throw new RuntimeException("Unauthorized: User not authenticated");
+        }
+
         JammingSession session = sessionRepo.findById(sessionId)
                 .orElseThrow(() -> new RuntimeException("Session not found"));
+                
+        if (!membershipRepo.existsByUserAndGroup_Id(user, session.getGroup().getId())) {
+            throw new RuntimeException("Must be a member of the group to join the session");
+        }
 
         if (session.getStatus() == SessionStatus.ENDED) {
             throw new RuntimeException("Session ended");
@@ -96,10 +108,14 @@ public class JammingSessionService {
     /* LEAVE SESSION */
     public void leaveSession(Long sessionId, Login_User user) {
 
+        if (user == null) {
+            throw new RuntimeException("Unauthorized: User not authenticated");
+        }
+
         JammingSession session = sessionRepo.findById(sessionId)
                 .orElseThrow(() -> new RuntimeException("Session not found"));
 
-        if (!membershipRepo.existsByUserAndGroup(user, session.getGroup())) {
+        if (!membershipRepo.existsByUserAndGroup_Id(user, session.getGroup().getId())) {
             throw new RuntimeException("Not authorized");
         }
         

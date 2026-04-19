@@ -214,7 +214,10 @@ public class serviceUser {
         // Delete old profile picture if exists
         if (user.getProfilePicture() != null && !user.getProfilePicture().isEmpty()) {
             try {
-                Path oldPicturePath = Paths.get(user.getProfilePicture());
+                // Stored value is a URL path like /uploads/profile-pictures/x.jpg
+                // Strip leading slash to get the filesystem path
+                String fsPath = user.getProfilePicture().replaceFirst("^/", "");
+                Path oldPicturePath = Paths.get(fsPath);
                 if (Files.exists(oldPicturePath)) {
                     Files.delete(oldPicturePath);
                 }
@@ -222,20 +225,20 @@ public class serviceUser {
                 // Log error but continue
             }
         }
-        
+
         // Generate unique filename
         String fileName = UUID.randomUUID() + "_" + file.getOriginalFilename();
         Path filePath = Paths.get(UPLOAD_DIR + fileName);
-        
+
         // Save file
         Files.write(filePath, file.getBytes());
-        
-        // Update user profile picture
-        String relativePath = UPLOAD_DIR + fileName;
-        user.setProfilePicture(relativePath);
+
+        // Store as a URL-accessible path (Spring serves /uploads/** statically)
+        String urlPath = "/uploads/profile-pictures/" + fileName;
+        user.setProfilePicture(urlPath);
         repo.save(user);
-        
-        return relativePath;
+
+        return urlPath;
     }
 }
 

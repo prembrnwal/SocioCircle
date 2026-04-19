@@ -9,6 +9,8 @@ import com.example.SocioCircle.Enum.SessionStatus;
 import com.example.SocioCircle.Repository.Chat.ChatMessageRepository;
 import com.example.SocioCircle.Repository.Jamming_Repo.JammingParticipantRepository;
 import com.example.SocioCircle.Repository.Jamming_Repo.JammingSessionRepository;
+import com.example.SocioCircle.Repository.MembershipRepository;
+import com.example.SocioCircle.Repository.repo_User;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -29,22 +31,36 @@ public class ChatService {
     @Autowired
     private JammingParticipantRepository participantRepo;
     
+    @Autowired
+    private repo_User userRepository;
+    
+    @Autowired
+    private MembershipRepository membershipRepo;
+    
     /**
      * Save message to database
      */
-    public ChatMessage saveMessage(Long sessionId, Login_User sender, String content) {
+    public ChatMessage saveMessage(Long sessionId, String userEmail, String content) {
+        Login_User sender = userRepository.findById(userEmail)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+                
         JammingSession session = sessionRepo.findById(sessionId)
                 .orElseThrow(() -> new RuntimeException("Session not found"));
-        
-        // Check if session is LIVE
-        if (session.getStatus() != SessionStatus.LIVE) {
-            throw new RuntimeException("Session is not live");
+                
+        // User must be a member of the group to participate in the chat
+        if (!membershipRepo.existsByUserAndGroup_Id(sender, session.getGroup().getId())) {
+            throw new RuntimeException("Must be a member of the group to take part in the live chat session");
         }
         
-        // Check if user is active participant
-        if (participantRepo.findBySessionAndUserAndLeftAtIsNull(session, sender).isEmpty()) {
-            throw new RuntimeException("User is not a participant of this session");
-        }
+        // // Check if session is LIVE
+        // if (session.getStatus() != SessionStatus.LIVE) {
+        //     throw new RuntimeException("Session is not live");
+        // }
+        // 
+        // // Check if user is active participant
+        // if (participantRepo.findBySessionAndUserAndLeftAtIsNull(session, sender).isEmpty()) {
+        //     throw new RuntimeException("User is not a participant of this session");
+        // }
         
         ChatMessage message = new ChatMessage();
         message.setSession(session);
@@ -94,8 +110,8 @@ public class ChatService {
         ChatMessageDTO dto = new ChatMessageDTO();
         dto.setId(message.getId());
         dto.setSessionId(message.getSession().getId());
-        dto.setSenderEmail(message.getSender().getEmail());
-        dto.setSenderName(message.getSender().getName());
+        dto.setUserEmail(message.getSender().getEmail());
+        dto.setUserName(message.getSender().getName());
         dto.setContent(message.getContent());
         dto.setTimestamp(message.getTimestamp());
         return dto;
