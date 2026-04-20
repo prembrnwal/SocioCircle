@@ -18,12 +18,19 @@ export const useChatStore = create<ChatState>((set) => ({
   isConnected: false,
   setActiveSession: (sessionId) => set({ activeSessionId: sessionId }),
   addMessage: (sessionId, message) =>
-    set((state) => ({
-      messages: {
-        ...state.messages,
-        [sessionId]: [...(state.messages[sessionId] || []), message],
-      },
-    })),
+    set((state) => {
+      const existing = state.messages[sessionId] || [];
+      // Prevent duplicates: skip if a message with the same id already exists
+      if (message.id && existing.some((m) => m.id === message.id)) {
+        return state;
+      }
+      return {
+        messages: {
+          ...state.messages,
+          [sessionId]: [...existing, message],
+        },
+      };
+    }),
   setMessages: (sessionId, messages) =>
     set((state) => ({
       messages: {
