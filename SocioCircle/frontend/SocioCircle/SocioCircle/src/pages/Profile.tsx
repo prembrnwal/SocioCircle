@@ -563,8 +563,9 @@ export const Profile = () => {
                   (() => {
                     const s = displayUser.profilePicture || '';
                     if (s.startsWith('http') || s.startsWith('data:')) return s;
+                    const backendOrigin = import.meta.env.VITE_API_URL ?? 'http://localhost:9090';
                     if (s.startsWith('/uploads/') || s.startsWith('uploads/')) {
-                      return `http://localhost:9090${s.startsWith('/') ? s : '/' + s}`;
+                      return `${backendOrigin}${s.startsWith('/') ? s : '/' + s}`;
                     }
                     return s;
                   })()
