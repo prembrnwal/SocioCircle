@@ -3,11 +3,11 @@ import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tansta
 import {
   IoGridOutline, IoHeartOutline, IoBookmarkOutline,
   IoSettingsOutline, IoImagesOutline, IoMusicalNoteOutline,
-  IoHeart, IoChatbubbleOutline,
+  IoHeart, IoChatbubbleOutline, IoCameraOutline,
 } from 'react-icons/io5';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-toastify';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { apiService } from '../services/api';
 import { useAuthStore } from '../stores/authStore';
@@ -89,6 +89,8 @@ export const Profile = () => {
   const [isFollowHovered, setIsFollowHovered] = useState(false);
   const [optimisticFollowing, setOptimisticFollowing] = useState<boolean | null>(null);
   const [showPhotoViewer, setShowPhotoViewer] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const updateUser = useAuthStore((state) => state.updateUser);
 
   const isOwnProfile = !email || email === currentUser?.email;
   const targetEmail = email || currentUser?.email;
@@ -153,6 +155,29 @@ export const Profile = () => {
     },
   });
 
+  const uploadPictureMutation = useMutation({
+    mutationFn: (file: File) => apiService.uploadProfilePicture(file),
+    onSuccess: (filePath) => {
+      if (user) {
+        updateUser({ ...user, profilePicture: filePath });
+      }
+      queryClient.invalidateQueries({ queryKey: ['user', targetEmail] });
+      queryClient.invalidateQueries({ queryKey: ['user', 'me'] });
+      toast.success('Profile picture updated!');
+      setShowPhotoViewer(false);
+    },
+    onError: () => {
+      toast.error('Failed to upload profile picture');
+    },
+  });
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      uploadPictureMutation.mutate(file);
+    }
+  };
+
   // Use real data only — never bleed another user's data as fallback
   const displayUser = user ?? MOCK_USER;
   const displayStats = followStats ?? MOCK_STATS;
@@ -202,13 +227,19 @@ export const Profile = () => {
           {/* Avatar + Actions row */}
           <div className="px-5 sm:px-8 pb-6 relative -mt-16 sm:-mt-20">
             <div className="flex flex-col sm:flex-row sm:items-end gap-4 mb-5">
-              {/* Avatar — tap to view full image */}
+              {/* Avatar — tap to view full image or change */}
               <div
                 className={`relative inline-block w-28 h-28 sm:w-36 sm:h-36 rounded-full border-4 border-white dark:border-[#121212] shadow-xl overflow-hidden shrink-0 ${
-                  displayUser.profilePicture ? 'cursor-pointer group' : ''
+                  (displayUser.profilePicture || isOwnProfile) ? 'cursor-pointer group' : ''
                 }`}
-                onClick={() => displayUser.profilePicture && setShowPhotoViewer(true)}
-                title={displayUser.profilePicture ? 'View photo' : undefined}
+                onClick={() => {
+                  if (displayUser.profilePicture) {
+                    setShowPhotoViewer(true);
+                  } else if (isOwnProfile) {
+                    fileInputRef.current?.click();
+                  }
+                }}
+                title={isOwnProfile ? 'Change photo' : (displayUser.profilePicture ? 'View photo' : undefined)}
               >
                 <Avatar
                   src={displayUser.profilePicture}
@@ -216,7 +247,15 @@ export const Profile = () => {
                   size="xl"
                   className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                 />
-                {displayUser.profilePicture && (
+                {uploadPictureMutation.isPending ? (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full">
+                    <Spinner size="md" className="text-white" />
+                  </div>
+                ) : isOwnProfile ? (
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors rounded-full flex items-center justify-center">
+                    <IoCameraOutline className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-lg" />
+                  </div>
+                ) : displayUser.profilePicture && (
                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/25 transition-colors rounded-full flex items-center justify-center">
                     <svg className="w-7 h-7 text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-lg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
@@ -224,6 +263,13 @@ export const Profile = () => {
                   </div>
                 )}
               </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleFileSelect}
+                className="hidden"
+              />
 
               {/* Name + action buttons */}
               <div className="flex-1 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:mb-3">
@@ -576,6 +622,19 @@ export const Profile = () => {
               <p className="text-white/80 text-sm font-semibold tracking-wide">
                 {displayUser.name}
               </p>
+              {isOwnProfile && (
+                <Button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    fileInputRef.current?.click();
+                  }}
+                  isLoading={uploadPictureMutation.isPending}
+                  className="mt-4 bg-white/10 hover:bg-white/20 text-white border border-white/20 rounded-xl px-6 py-2 backdrop-blur-sm"
+                >
+                  <IoCameraOutline className="w-5 h-5 mr-2" />
+                  Change Photo
+                </Button>
+              )}
             </motion.div>
           </motion.div>
         )}
