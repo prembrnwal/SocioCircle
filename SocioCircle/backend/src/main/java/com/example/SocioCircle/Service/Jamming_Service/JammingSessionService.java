@@ -206,8 +206,11 @@ public class JammingSessionService {
 
         List<ParticipantResponse> responseList = participants.stream().map(p -> {
             ParticipantResponse dto = new ParticipantResponse();
-            dto.setUserId(p.getUser().getEmail()); // Use email as userId
-            dto.setUsername(p.getUser().getName()); // Use name as username
+            dto.setId(p.getId());
+            dto.setSessionId(p.getSession().getId());
+            dto.setUserEmail(p.getUser().getEmail()); 
+            dto.setUserName(p.getUser().getName()); 
+            dto.setUserProfilePicture(p.getUser().getProfilePicture());
             dto.setJoinedAt(p.getJoinedAt());
             return dto;
         }).toList();

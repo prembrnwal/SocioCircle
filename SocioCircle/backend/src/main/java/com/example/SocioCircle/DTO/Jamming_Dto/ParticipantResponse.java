@@ -8,8 +8,11 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 public class ParticipantResponse {
-    private String userId;  // Changed to String (email) to match Login_User
-    private String username; // Changed to match Login_User.name
+    private Long id;
+    private Long sessionId;
+    private String userEmail;
+    private String userName;
+    private String userProfilePicture;
     private LocalDateTime joinedAt;
 }
 

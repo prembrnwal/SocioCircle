@@ -74,9 +74,20 @@ public class JammingSessionController {
 
     // GET PARTICIPANTS (Legacy - returns all, no pagination)
     @GetMapping("/{id}/participants/all")
-    public ResponseEntity<List<com.example.SocioCircle.Entity.Jamming_Entity.JammingParticipant>> getAllParticipants(
+    public ResponseEntity<List<ParticipantResponse>> getAllParticipants(
             @PathVariable Long id) {
-        return ResponseEntity.ok(service.getParticipants(id));
+        List<com.example.SocioCircle.Entity.Jamming_Entity.JammingParticipant> participants = service.getParticipants(id);
+        List<ParticipantResponse> responseList = participants.stream().map(p -> {
+            ParticipantResponse dto = new ParticipantResponse();
+            dto.setId(p.getId());
+            dto.setSessionId(p.getSession().getId());
+            dto.setUserEmail(p.getUser().getEmail()); 
+            dto.setUserName(p.getUser().getName()); 
+            dto.setUserProfilePicture(p.getUser().getProfilePicture());
+            dto.setJoinedAt(p.getJoinedAt());
+            return dto;
+        }).toList();
+        return ResponseEntity.ok(responseList);
     }
 }
 
