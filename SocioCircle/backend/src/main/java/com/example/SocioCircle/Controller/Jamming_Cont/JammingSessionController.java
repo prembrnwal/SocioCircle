@@ -45,6 +45,12 @@ public class JammingSessionController {
         return ResponseEntity.ok(service.getSessionsByGroupCursor(groupId, cursor, limit));
     }
 
+    // GET SESSION BY ID
+    @GetMapping("/{id}")
+    public ResponseEntity<JammingSessionResponse> getSession(@PathVariable Long id) {
+        return ResponseEntity.ok(service.getSessionById(id));
+    }
+
     // JOIN SESSION
     @PostMapping("/{id}/join")
     public ResponseEntity<Map<String, String>> join(@PathVariable Long id,

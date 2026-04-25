@@ -76,6 +76,13 @@ public class JammingSessionService {
         return mapToResponse(session);
     }
 
+    /* GET SESSION BY ID */
+    public JammingSessionResponse getSessionById(Long sessionId) {
+        JammingSession session = sessionRepo.findById(sessionId)
+                .orElseThrow(() -> new RuntimeException("Session not found"));
+        return mapToResponse(session);
+    }
+
     /* JOIN SESSION */
     public void joinSession(Long sessionId, Login_User user) {
 
