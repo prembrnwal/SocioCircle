@@ -62,6 +62,19 @@ export const Chat = () => {
   const { messages, addMessage, setMessages, setConnected } = useChatStore();
   const sessionMessages = sessionId ? messages[Number(sessionId)] || [] : [];
 
+  // Load session details to display title
+  const { data: session } = useQuery({
+    queryKey: ['session', sessionId],
+    queryFn: async () => {
+      try {
+        return await apiService.getSession(Number(sessionId!));
+      } catch {
+        return null;
+      }
+    },
+    enabled: !!sessionId,
+  });
+
   const { data: messagesData, isLoading: isLoadingMessages } = useQuery({
     queryKey: ['chatMessages', sessionId],
     queryFn: () => apiService.getChatMessages(Number(sessionId!)),
@@ -120,6 +133,15 @@ export const Chat = () => {
 
   const connected = isConnected();
 
+  const getInitials = (text?: string) => {
+    if (!text) return 'JS';
+    const words = text.split(' ');
+    if (words.length >= 2) {
+      return (words[0][0] + words[1][0]).toUpperCase();
+    }
+    return text.substring(0, 2).toUpperCase();
+  };
+
   return (
     <div className="relative flex flex-col h-[100dvh] bg-gray-50/50 dark:bg-[#050505] w-full overflow-hidden selection:bg-violet-500/30">
       {/* ── Background Flair ── */}
@@ -151,7 +173,7 @@ export const Chat = () => {
 
             <div className="relative group cursor-pointer">
               <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-tr from-violet-600 to-fuchsia-500 flex items-center justify-center text-white font-extrabold text-base sm:text-lg shadow-lg shadow-violet-500/40 transform transition-transform group-hover:scale-105">
-                JS
+                {getInitials(session?.title)}
               </div>
               {connected && (
                 <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 border-[2.5px] border-white dark:border-[#0a0a0a] rounded-full shadow-sm" />
@@ -159,8 +181,8 @@ export const Chat = () => {
             </div>
 
             <div className="flex flex-col justify-center">
-              <h1 className="text-base sm:text-xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 leading-tight mb-0.5">
-                Live Jam Chat
+              <h1 className="text-base sm:text-xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 leading-tight mb-0.5 truncate max-w-[150px] sm:max-w-xs md:max-w-md">
+                {session?.title || 'Live Jam Chat'}
               </h1>
               <ConnectionBadge connected={connected} connecting={isConnecting} />
             </div>
