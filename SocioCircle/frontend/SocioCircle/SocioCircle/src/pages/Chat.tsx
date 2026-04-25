@@ -121,167 +121,186 @@ export const Chat = () => {
   const connected = isConnected();
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50 dark:bg-[#0a0a0a] max-w-4xl mx-auto w-full">
+    <div className="relative flex flex-col h-[100dvh] bg-gray-50/50 dark:bg-[#050505] w-full overflow-hidden selection:bg-violet-500/30">
+      {/* ── Background Flair ── */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <motion.div 
+          animate={{ scale: [1, 1.2, 1], opacity: [0.15, 0.25, 0.15] }}
+          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute -top-40 -right-40 w-[30rem] h-[30rem] bg-fuchsia-500 rounded-full blur-[120px]" 
+        />
+        <motion.div 
+          animate={{ scale: [1.2, 1, 1.2], opacity: [0.15, 0.25, 0.15] }}
+          transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+          className="absolute top-1/3 -left-40 w-[30rem] h-[30rem] bg-violet-600 rounded-full blur-[120px]" 
+        />
+      </div>
 
-      {/* ── Header ── */}
-      <div className="sticky top-0 z-20 bg-white/90 dark:bg-[#111]/90 backdrop-blur-xl border-b border-gray-200 dark:border-white/10 px-4 py-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
+      <div className="relative flex flex-col h-full max-w-4xl mx-auto w-full bg-white/40 dark:bg-black/40 backdrop-blur-3xl border-x border-gray-200/50 dark:border-white/5 shadow-2xl z-10">
+        
+        {/* ── Header ── */}
+        <div className="flex-shrink-0 z-30 bg-white/80 dark:bg-[#0a0a0a]/80 backdrop-blur-xl border-b border-gray-200/50 dark:border-white/10 px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3 sm:gap-4">
             <button
               onClick={() => navigate(-1)}
-              className="p-2 -ml-1 text-gray-700 dark:text-white hover:bg-gray-100 dark:hover:bg-white/10 rounded-full transition-colors"
+              className="p-2 -ml-2 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-white/10 rounded-full transition-all hover:scale-105 active:scale-95"
               aria-label="Go back"
             >
-              <IoArrowBack className="w-6 h-6" />
+              <IoArrowBack className="w-5 h-5 sm:w-6 sm:h-6" />
             </button>
 
-            <div className="relative">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-violet-600 to-fuchsia-500 flex items-center justify-center text-white font-bold text-sm shadow-md shadow-violet-500/30">
+            <div className="relative group cursor-pointer">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-tr from-violet-600 to-fuchsia-500 flex items-center justify-center text-white font-extrabold text-base sm:text-lg shadow-lg shadow-violet-500/40 transform transition-transform group-hover:scale-105">
                 JS
               </div>
               {connected && (
-                <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 border-2 border-white dark:border-[#111] rounded-full" />
+                <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 border-[2.5px] border-white dark:border-[#0a0a0a] rounded-full shadow-sm" />
               )}
             </div>
 
-            <div>
-              <h1 className="text-base font-bold text-gray-900 dark:text-white leading-tight">Live Jam Chat</h1>
+            <div className="flex flex-col justify-center">
+              <h1 className="text-base sm:text-xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 leading-tight mb-0.5">
+                Live Jam Chat
+              </h1>
               <ConnectionBadge connected={connected} connecting={isConnecting} />
             </div>
           </div>
 
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 sm:gap-2">
             <button
               title="Group Video Call (Coming Soon)"
               onClick={() => toast.info('Group Video Call coming in a future update!')}
-              className="hidden sm:flex items-center gap-2 px-3 py-1.5 text-fuchsia-600 dark:text-fuchsia-400 bg-fuchsia-50 dark:bg-fuchsia-500/10 hover:bg-fuchsia-100 dark:hover:bg-fuchsia-500/20 rounded-full transition-all text-sm font-semibold"
+              className="hidden sm:flex items-center gap-2 px-4 py-2 text-fuchsia-600 dark:text-fuchsia-400 bg-fuchsia-50 dark:bg-fuchsia-500/10 hover:bg-fuchsia-100 dark:hover:bg-fuchsia-500/20 rounded-2xl transition-all text-sm font-bold border border-fuchsia-100/50 dark:border-fuchsia-500/20 hover:scale-105 active:scale-95"
             >
               <IoVideocamOutline className="w-5 h-5" />
               Video
             </button>
             <button
               aria-label="Session info"
-              className="p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full transition-colors"
+              className="p-2 sm:p-2.5 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full transition-all hover:scale-105 active:scale-95"
             >
               <IoInformationCircleOutline className="w-6 h-6" />
             </button>
-            <button aria-label="More options" className="p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full transition-colors">
+            <button aria-label="More options" className="p-2 sm:p-2.5 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full transition-all hover:scale-105 active:scale-95">
               <IoEllipsisHorizontal className="w-6 h-6" />
             </button>
           </div>
         </div>
-      </div>
 
-      {/* ── Messages ── */}
-      <div className="flex-1 overflow-y-auto px-4 py-6 space-y-4">
-        {sessionMessages.length === 0 ? (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="flex flex-col items-center justify-center h-full opacity-60 text-center"
-          >
-            <div className="w-24 h-24 mb-4 rounded-full bg-gradient-to-tr from-violet-600/20 to-fuchsia-500/20 flex items-center justify-center">
-              <span className="text-4xl">👋</span>
-            </div>
-            <p className="text-gray-900 dark:text-white font-bold text-lg mb-1">Start the conversation</p>
-            <p className="text-sm text-gray-500 dark:text-gray-400">No messages yet. Say hello!</p>
-          </motion.div>
-        ) : (
-          <AnimatePresence initial={false}>
-            {sessionMessages.map((msg, index) => {
-              const isOwn = msg.userEmail === currentUser?.email;
-              const showSender = !isOwn && (
-                index === 0 || sessionMessages[index - 1]?.userEmail !== msg.userEmail
-              );
-              const isGrouped = !isOwn && index > 0 && sessionMessages[index - 1]?.userEmail === msg.userEmail;
-
-              return (
-                <motion.div
-                  key={msg.id ?? `${msg.userEmail}-${index}`}
-                  initial={{ opacity: 0, y: 12, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  transition={{ type: 'spring', stiffness: 380, damping: 28 }}
-                  className={`flex gap-2.5 ${isOwn ? 'flex-row-reverse' : 'flex-row'} items-end ${isGrouped ? 'mt-1' : 'mt-4'}`}
-                >
-                  {/* Avatar placeholder for alignment */}
-                  <div className={`w-8 flex-shrink-0 ${isOwn ? 'hidden' : ''}`}>
-                    {showSender && !isGrouped ? (
-                      <Avatar
-                        src={msg.userProfilePicture}
-                        alt={msg.userName}
-                        size="sm"
-                        className="w-8 h-8 rounded-full"
-                      />
-                    ) : !isOwn ? (
-                      <div className="w-8" />
-                    ) : null}
-                  </div>
-
-                  <div className={`flex flex-col ${isOwn ? 'items-end' : 'items-start'} max-w-[75%] sm:max-w-[65%]`}>
-                    {showSender && !isGrouped && !isOwn && (
-                      <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1 ml-1">
-                        {msg.userName}
-                      </span>
-                    )}
-                    <div
-                      className={`px-4 py-2.5 text-[0.93rem] leading-relaxed shadow-sm ${
-                        isOwn
-                          ? 'bg-gradient-to-r from-violet-600 to-fuchsia-500 text-white rounded-2xl rounded-tr-md shadow-md shadow-violet-500/20'
-                          : 'bg-white dark:bg-[#1e1e1e] text-gray-900 dark:text-gray-100 rounded-2xl rounded-tl-md border border-gray-100 dark:border-white/5'
-                      }`}
-                    >
-                      <p>{msg.content}</p>
-                    </div>
-                    <span className="text-[10px] text-gray-400 dark:text-gray-500 mt-1 mx-1">
-                      {format(new Date(msg.timestamp), 'h:mm a')}
-                    </span>
-                  </div>
-                </motion.div>
-              );
-            })}
-          </AnimatePresence>
-        )}
-
-        {/* Typing indicator */}
-        <AnimatePresence>
-          {showTyping && (
+        {/* ── Messages ── */}
+        <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-6 space-y-5 custom-scrollbar">
+          {sessionMessages.length === 0 ? (
             <motion.div
-              initial={{ opacity: 0, y: 8 }}
+              initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 8 }}
+              transition={{ delay: 0.2 }}
+              className="flex flex-col items-center justify-center h-full opacity-80 text-center"
             >
-              <TypingIndicator />
+              <div className="w-28 h-28 mb-6 rounded-full bg-gradient-to-tr from-violet-600/10 to-fuchsia-500/10 border border-violet-500/20 flex items-center justify-center shadow-2xl shadow-violet-500/10">
+                <span className="text-5xl drop-shadow-md">👋</span>
+              </div>
+              <p className="text-gray-900 dark:text-white font-extrabold text-2xl mb-2 tracking-tight">Start the vibe</p>
+              <p className="text-base text-gray-500 dark:text-gray-400 max-w-xs font-medium">Be the first to break the ice and drop a message below.</p>
             </motion.div>
+          ) : (
+            <AnimatePresence initial={false}>
+              {sessionMessages.map((msg, index) => {
+                const isOwn = msg.userEmail === currentUser?.email;
+                const showSender = !isOwn && (
+                  index === 0 || sessionMessages[index - 1]?.userEmail !== msg.userEmail
+                );
+                const isGrouped = !isOwn && index > 0 && sessionMessages[index - 1]?.userEmail === msg.userEmail;
+
+                return (
+                  <motion.div
+                    key={msg.id ?? `${msg.userEmail}-${index}`}
+                    initial={{ opacity: 0, y: 15, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                    className={`flex gap-3 ${isOwn ? 'flex-row-reverse' : 'flex-row'} items-end ${isGrouped ? 'mt-1.5' : 'mt-5'}`}
+                  >
+                    {/* Avatar placeholder for alignment */}
+                    <div className={`w-9 flex-shrink-0 ${isOwn ? 'hidden' : ''}`}>
+                      {showSender && !isGrouped ? (
+                        <Avatar
+                          src={msg.userProfilePicture}
+                          alt={msg.userName}
+                          size="sm"
+                          className="w-9 h-9 rounded-full ring-2 ring-white dark:ring-[#121212] shadow-sm"
+                        />
+                      ) : !isOwn ? (
+                        <div className="w-9" />
+                      ) : null}
+                    </div>
+
+                    <div className={`flex flex-col ${isOwn ? 'items-end' : 'items-start'} max-w-[80%] sm:max-w-[70%]`}>
+                      {showSender && !isGrouped && !isOwn && (
+                        <span className="text-[0.8rem] font-bold text-gray-500 dark:text-gray-400 mb-1.5 ml-1">
+                          {msg.userName}
+                        </span>
+                      )}
+                      <div
+                        className={`px-5 py-3 text-[0.95rem] leading-relaxed shadow-sm ${
+                          isOwn
+                            ? 'bg-gradient-to-br from-violet-600 to-fuchsia-600 text-white rounded-[1.5rem] rounded-br-sm shadow-lg shadow-violet-500/25'
+                            : 'bg-white dark:bg-[#1c1c1c] text-gray-900 dark:text-gray-100 rounded-[1.5rem] rounded-bl-sm border border-gray-100 dark:border-white/5 shadow-md shadow-gray-200/40 dark:shadow-none'
+                        }`}
+                      >
+                        <p className="whitespace-pre-wrap break-words">{msg.content}</p>
+                      </div>
+                      <span className={`text-[0.65rem] font-medium text-gray-400 dark:text-gray-500 mt-1.5 ${isOwn ? 'mr-1' : 'ml-1'}`}>
+                        {format(new Date(msg.timestamp), 'h:mm a')}
+                      </span>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </AnimatePresence>
           )}
-        </AnimatePresence>
 
-        <div ref={messagesEndRef} className="h-2" />
-      </div>
+          {/* Typing indicator */}
+          <AnimatePresence>
+            {showTyping && (
+              <motion.div
+                initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                className="mt-4"
+              >
+                <TypingIndicator />
+              </motion.div>
+            )}
+          </AnimatePresence>
 
-      {/* ── Input Bar ── */}
-      <div className="sticky bottom-0 bg-white/90 dark:bg-[#111]/90 backdrop-blur-xl border-t border-gray-200 dark:border-white/5 px-4 py-3 z-20">
-        <form onSubmit={handleSendMessage} className="flex gap-3 items-center">
-          <div className="flex-1 bg-gray-100 dark:bg-white/5 rounded-full border border-transparent focus-within:border-violet-500/50 focus-within:bg-white dark:focus-within:bg-[#1a1a1a] transition-all flex items-center px-4 py-1.5">
-            <input
-              ref={inputRef}
-              type="text"
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              placeholder={connected ? 'Message...' : 'Connecting...'}
-              className="flex-1 bg-transparent border-none focus:ring-0 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 py-2 outline-none text-[0.95rem]"
-              disabled={!connected}
-              autoComplete="off"
-            />
-          </div>
-          <motion.button
-            type="submit"
-            disabled={!message.trim() || !connected}
-            whileTap={{ scale: 0.9 }}
-            className="w-11 h-11 flex-shrink-0 flex items-center justify-center rounded-full bg-gradient-to-tr from-violet-600 to-fuchsia-500 text-white disabled:opacity-40 disabled:cursor-not-allowed transition-opacity shadow-md shadow-violet-500/30"
-          >
-            <IoSend className="w-4 h-4 ml-0.5" />
-          </motion.button>
-        </form>
+          <div ref={messagesEndRef} className="h-4" />
+        </div>
+
+        {/* ── Input Bar ── */}
+        <div className="flex-shrink-0 p-4 sm:p-6 bg-gradient-to-t from-gray-50 via-gray-50 to-transparent dark:from-[#050505] dark:via-[#050505] dark:to-transparent z-20">
+          <form onSubmit={handleSendMessage} className="flex gap-2 sm:gap-3 items-end max-w-3xl mx-auto relative group">
+            <div className="flex-1 bg-white dark:bg-[#1a1a1a] rounded-[2rem] border border-gray-200 dark:border-white/10 shadow-lg shadow-gray-200/50 dark:shadow-none focus-within:border-violet-500/50 focus-within:ring-4 focus-within:ring-violet-500/10 transition-all flex items-center px-2 py-1.5">
+              <input
+                ref={inputRef}
+                type="text"
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                placeholder={connected ? 'Type your message...' : 'Connecting...'}
+                className="flex-1 bg-transparent border-none focus:ring-0 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 py-2.5 px-4 outline-none text-[0.95rem] font-medium"
+                disabled={!connected}
+                autoComplete="off"
+              />
+            </div>
+            <motion.button
+              type="submit"
+              disabled={!message.trim() || !connected}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="w-12 h-12 sm:w-14 sm:h-14 flex-shrink-0 flex items-center justify-center rounded-full bg-gradient-to-br from-violet-600 to-fuchsia-600 text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-xl shadow-violet-500/30"
+            >
+              <IoSend className="w-5 h-5 sm:w-6 sm:h-6 ml-0.5" />
+            </motion.button>
+          </form>
+        </div>
       </div>
     </div>
   );
