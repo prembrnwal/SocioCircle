@@ -23,6 +23,8 @@ public class RateLimitFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
         String path = request.getRequestURI();
+        Bucket globalBucket = rateLimitService.getBucket("global_" + request.getRemoteAddr(), 200, 1);
+        if (!globalBucket.tryConsume(1)) { response.setStatus(429); return; }
         String clientIp = request.getRemoteAddr();
 
         if (pathMatcher.match("/api/auth/login", path)) {
