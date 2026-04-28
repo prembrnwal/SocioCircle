@@ -22,6 +22,19 @@ public class RateLimitFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
+                String path = request.getRequestURI();
+        String clientIp = request.getRemoteAddr();
+
+        if (pathMatcher.match("/api/auth/login", path)) {
+            Bucket bucket = rateLimitService.getBucket("login_" + clientIp, 5, 1);
+            if (!bucket.tryConsume(1)) { response.setStatus(429); return; }
+        } else if (pathMatcher.match("/api/auth/register", path)) {
+            Bucket bucket = rateLimitService.getBucket("register_" + clientIp, 5, 60);
+            if (!bucket.tryConsume(1)) { response.setStatus(429); return; }
+        } else if (pathMatcher.match("/api/auth/forgot-password", path)) {
+            Bucket bucket = rateLimitService.getBucket("forgot_" + clientIp, 3, 60);
+            if (!bucket.tryConsume(1)) { response.setStatus(429); return; }
+        }
         filterChain.doFilter(request, response);
     }
 }
