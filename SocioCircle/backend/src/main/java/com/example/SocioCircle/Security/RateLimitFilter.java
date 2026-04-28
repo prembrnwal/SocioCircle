@@ -24,40 +24,70 @@ public class RateLimitFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
         String path = request.getRequestURI();
         Bucket globalBucket = rateLimitService.getBucket("global_" + request.getRemoteAddr(), 200, 1);
-        if (!globalBucket.tryConsume(1)) { response.setStatus(429); return; }
+        if (!globalBucket.tryConsume(1)) { response.setStatus(429);
+                response.setContentType("application/json");
+                response.getWriter().write("{"error": "Too many requests", "status": 429, "message": "Rate limit exceeded"}");
+                return; }
         String clientIp = request.getRemoteAddr();
 
         if (pathMatcher.match("/api/auth/login", path)) {
             Bucket bucket = rateLimitService.getBucket("login_" + clientIp, 5, 1);
-            if (!bucket.tryConsume(1)) { response.setStatus(429); return; }
+            if (!bucket.tryConsume(1)) { response.setStatus(429);
+                response.setContentType("application/json");
+                response.getWriter().write("{"error": "Too many requests", "status": 429, "message": "Rate limit exceeded"}");
+                return; }
         } else if (pathMatcher.match("/api/auth/register", path)) {
             Bucket bucket = rateLimitService.getBucket("register_" + clientIp, 5, 60);
-            if (!bucket.tryConsume(1)) { response.setStatus(429); return; }
+            if (!bucket.tryConsume(1)) { response.setStatus(429);
+                response.setContentType("application/json");
+                response.getWriter().write("{"error": "Too many requests", "status": 429, "message": "Rate limit exceeded"}");
+                return; }
         } else if (pathMatcher.match("/api/auth/forgot-password", path)) {
             Bucket bucket = rateLimitService.getBucket("forgot_" + clientIp, 3, 60);
-            if (!bucket.tryConsume(1)) { response.setStatus(429); return; }
+            if (!bucket.tryConsume(1)) { response.setStatus(429);
+                response.setContentType("application/json");
+                response.getWriter().write("{"error": "Too many requests", "status": 429, "message": "Rate limit exceeded"}");
+                return; }
         } else if (pathMatcher.match("/api/users/upload-photo", path) || pathMatcher.match("/api/files/upload", path)) {
             Bucket bucket = rateLimitService.getBucket("upload_" + clientIp, 10, 1);
-            if (!bucket.tryConsume(1)) { response.setStatus(429); return; }
+            if (!bucket.tryConsume(1)) { response.setStatus(429);
+                response.setContentType("application/json");
+                response.getWriter().write("{"error": "Too many requests", "status": 429, "message": "Rate limit exceeded"}");
+                return; }
         } else if (pathMatcher.match("/api/search/**", path)) {
             Bucket bucket = rateLimitService.getBucket("search_" + clientIp, 30, 1);
-            if (!bucket.tryConsume(1)) { response.setStatus(429); return; }
+            if (!bucket.tryConsume(1)) { response.setStatus(429);
+                response.setContentType("application/json");
+                response.getWriter().write("{"error": "Too many requests", "status": 429, "message": "Rate limit exceeded"}");
+                return; }
         } else if (pathMatcher.match("/api/chat/send", path)) {
             String userId = request.getUserPrincipal() != null ? request.getUserPrincipal().getName() : clientIp;
             Bucket bucket = rateLimitService.getBucket("chat_" + userId, 60, 1);
-            if (!bucket.tryConsume(1)) { response.setStatus(429); return; }
+            if (!bucket.tryConsume(1)) { response.setStatus(429);
+                response.setContentType("application/json");
+                response.getWriter().write("{"error": "Too many requests", "status": 429, "message": "Rate limit exceeded"}");
+                return; }
         } else if (pathMatcher.match("/api/communities/create", path)) {
             String userId = request.getUserPrincipal() != null ? request.getUserPrincipal().getName() : clientIp;
             Bucket bucket = rateLimitService.getBucket("comm_" + userId, 5, 60);
-            if (!bucket.tryConsume(1)) { response.setStatus(429); return; }
+            if (!bucket.tryConsume(1)) { response.setStatus(429);
+                response.setContentType("application/json");
+                response.getWriter().write("{"error": "Too many requests", "status": 429, "message": "Rate limit exceeded"}");
+                return; }
         } else if (pathMatcher.match("/api/posts/*/comment", path)) {
             String userId = request.getUserPrincipal() != null ? request.getUserPrincipal().getName() : clientIp;
             Bucket bucket = rateLimitService.getBucket("comment_" + userId, 30, 1);
-            if (!bucket.tryConsume(1)) { response.setStatus(429); return; }
+            if (!bucket.tryConsume(1)) { response.setStatus(429);
+                response.setContentType("application/json");
+                response.getWriter().write("{"error": "Too many requests", "status": 429, "message": "Rate limit exceeded"}");
+                return; }
         } else if (pathMatcher.match("/api/posts/*/like", path)) {
             String userId = request.getUserPrincipal() != null ? request.getUserPrincipal().getName() : clientIp;
             Bucket bucket = rateLimitService.getBucket("like_" + userId, 30, 1);
-            if (!bucket.tryConsume(1)) { response.setStatus(429); return; }
+            if (!bucket.tryConsume(1)) { response.setStatus(429);
+                response.setContentType("application/json");
+                response.getWriter().write("{"error": "Too many requests", "status": 429, "message": "Rate limit exceeded"}");
+                return; }
         }
         filterChain.doFilter(request, response);
     }
