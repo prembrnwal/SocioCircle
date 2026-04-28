@@ -35,6 +35,13 @@ public class RateLimitFilter extends OncePerRequestFilter {
             Bucket bucket = rateLimitService.getBucket("forgot_" + clientIp, 3, 60);
             if (!bucket.tryConsume(1)) { response.setStatus(429); return; }
         }
+        else if (pathMatcher.match("/api/users/upload-photo", path) || pathMatcher.match("/api/files/upload", path)) {
+            Bucket bucket = rateLimitService.getBucket("upload_" + clientIp, 10, 1);
+            if (!bucket.tryConsume(1)) { response.setStatus(429); return; }
+        } else if (pathMatcher.match("/api/search/**", path)) {
+            Bucket bucket = rateLimitService.getBucket("search_" + clientIp, 30, 1);
+            if (!bucket.tryConsume(1)) { response.setStatus(429); return; }
+        }
         filterChain.doFilter(request, response);
     }
 }
