@@ -22,7 +22,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
-                String path = request.getRequestURI();
+        String path = request.getRequestURI();
         String clientIp = request.getRemoteAddr();
 
         if (pathMatcher.match("/api/auth/login", path)) {
@@ -34,12 +34,27 @@ public class RateLimitFilter extends OncePerRequestFilter {
         } else if (pathMatcher.match("/api/auth/forgot-password", path)) {
             Bucket bucket = rateLimitService.getBucket("forgot_" + clientIp, 3, 60);
             if (!bucket.tryConsume(1)) { response.setStatus(429); return; }
-        }
-        else if (pathMatcher.match("/api/users/upload-photo", path) || pathMatcher.match("/api/files/upload", path)) {
+        } else if (pathMatcher.match("/api/users/upload-photo", path) || pathMatcher.match("/api/files/upload", path)) {
             Bucket bucket = rateLimitService.getBucket("upload_" + clientIp, 10, 1);
             if (!bucket.tryConsume(1)) { response.setStatus(429); return; }
         } else if (pathMatcher.match("/api/search/**", path)) {
             Bucket bucket = rateLimitService.getBucket("search_" + clientIp, 30, 1);
+            if (!bucket.tryConsume(1)) { response.setStatus(429); return; }
+        } else if (pathMatcher.match("/api/chat/send", path)) {
+            String userId = request.getUserPrincipal() != null ? request.getUserPrincipal().getName() : clientIp;
+            Bucket bucket = rateLimitService.getBucket("chat_" + userId, 60, 1);
+            if (!bucket.tryConsume(1)) { response.setStatus(429); return; }
+        } else if (pathMatcher.match("/api/communities/create", path)) {
+            String userId = request.getUserPrincipal() != null ? request.getUserPrincipal().getName() : clientIp;
+            Bucket bucket = rateLimitService.getBucket("comm_" + userId, 5, 60);
+            if (!bucket.tryConsume(1)) { response.setStatus(429); return; }
+        } else if (pathMatcher.match("/api/posts/*/comment", path)) {
+            String userId = request.getUserPrincipal() != null ? request.getUserPrincipal().getName() : clientIp;
+            Bucket bucket = rateLimitService.getBucket("comment_" + userId, 30, 1);
+            if (!bucket.tryConsume(1)) { response.setStatus(429); return; }
+        } else if (pathMatcher.match("/api/posts/*/like", path)) {
+            String userId = request.getUserPrincipal() != null ? request.getUserPrincipal().getName() : clientIp;
+            Bucket bucket = rateLimitService.getBucket("like_" + userId, 30, 1);
             if (!bucket.tryConsume(1)) { response.setStatus(429); return; }
         }
         filterChain.doFilter(request, response);
