@@ -1,6 +1,6 @@
-export const API_BASE_URL = 'http://localhost:9090/api';
-export const AUTH_BASE_URL = 'http://localhost:9090';
-export const WS_BASE_URL = 'http://localhost:9090/ws-chat';
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:9090/api';
+export const AUTH_BASE_URL = import.meta.env.VITE_AUTH_BASE_URL || 'http://localhost:9090';
+export const WS_BASE_URL = import.meta.env.VITE_WS_BASE_URL || 'http://localhost:9090/ws-chat';
 
 export const STORAGE_KEYS = {
   TOKEN: 'auth_token',
