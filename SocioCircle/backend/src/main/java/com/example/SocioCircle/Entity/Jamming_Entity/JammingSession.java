@@ -42,7 +42,11 @@ public class JammingSession {
     @CreationTimestamp
     private LocalDateTime createdAt;
 
+    @OneToMany(mappedBy = "session", cascade = CascadeType.ALL, orphanRemoval = true)
+    private java.util.List<com.example.SocioCircle.Entity.Chat.ChatMessage> chatMessages = new java.util.ArrayList<>();
+
+    @OneToMany(mappedBy = "session", cascade = CascadeType.ALL, orphanRemoval = true)
+    private java.util.List<JammingParticipant> participants = new java.util.ArrayList<>();
 
 }
-
 
